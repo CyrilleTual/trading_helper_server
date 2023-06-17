@@ -28,6 +28,9 @@ const saltRounds = parseInt(process.env.SALT);
  * Création d'un nouvel user -  avec le statut de visiteur par defaut
  */
 const signup = async (req, res) => {
+
+  console.log ("req",req.body)
+
   try {
     const query =   `SELECT email, pwd 
                     FROM user 
@@ -44,7 +47,8 @@ const signup = async (req, res) => {
       res.status(201).json({ msg: "utilisateur créé !", data: result });
     }
   } catch (error) {
-    throw Error(error);
+      res.status(401).json("problème d'identifiant", error);
+    //throw Error(error);
   }
 };
 
@@ -61,7 +65,8 @@ const signin = async (req, res) => {
                     WHERE email = ?`;
     const [user] = await Query.doByValue(query1, email);
 
-    console.log (user)
+    console.log (req.body)
+    console.log ("user", user)
 
     if (!user || user.email !== email) {
       res.status(401).json(error("problème d'identifiant"));
@@ -73,13 +78,14 @@ const signin = async (req, res) => {
       // si ok on genere le tocken d'identifiation
       const TOKEN = jwt.sign({ id: user.id, alias: user.alias, role: user.role }, TOKEN_SECRET);
       const { email, alias, role } = user;
-      // on envoie au front le tocken et des infos nécessaires
+      // on envoie au front le token et des infos nécessaires
       res.status(200).json({ msg: "Connexion réussi",  TOKEN, email, alias, role });
     } else {
-      res.status(401).json(error("problème d'identifiant"));
+      res.status(401).json(("problème d'identifiant"));
     }
   } catch (error) {
-    throw Error(error);
+     res.status(401).json(("problème d'identifiant"));
+     
   }
 };
 

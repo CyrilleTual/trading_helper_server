@@ -58,8 +58,8 @@ export const getByUser = async (req, res) => {
     const queryOpened = `SELECT enter.trade_id AS tradeId, SUM(enter.quantity) AS opened
         FROM enter
         JOIN trade ON enter.trade_id = trade.id
-        JOIN account ON trade.account_id = account.id
-        JOIN user ON account.user_id = user.id
+        JOIN portfolio ON trade.portfolio_id = portfolio.id
+        JOIN user ON portfolio.user_id = user.id
         WHERE user.id = ?
         GROUP BY enter.trade_id`;
 
@@ -67,8 +67,8 @@ export const getByUser = async (req, res) => {
     const queryClosed = `SELECT closure.trade_id AS tradeId, SUM(closure.quantity) AS closed
         FROM closure
         JOIN trade ON closure.trade_id = trade.id
-        JOIN account ON trade.account_id = account.id
-        JOIN user ON account.user_id = user.id
+        JOIN portfolio ON trade.portfolio_id = portfolio.id
+        JOIN user ON portfolio.user_id = user.id
         WHERE user.id = ?
         GROUP BY closure.trade_id`;
 
@@ -84,13 +84,13 @@ export const getByUser = async (req, res) => {
             SELECT DISTINCT stock.title, stock.id  AS stockId,  stock.isin AS isin, stock.place AS place, stock.ticker AS ticker, 
             activeStock.lastQuote,
             trade.firstEnter, currentTarget, currentStop, trade.comment,
-            account.id  AS accountId 
+            portfolio.id  AS portfolioId 
             FROM enter
             JOIN trade ON enter.trade_id = trade.id 
             JOIN stock ON trade.stock_id = stock.id 
             JOIN activeStock ON activeStock.stock_id = stock.id
-            JOIN account ON trade.account_id = account.id 
-            JOIN user ON account.user_id  = user.id 
+            JOIN portfolio ON trade.portfolio_id = portfolio.id 
+            JOIN user ON portfolio.user_id  = user.id 
             WHERE trade.id = ?
         `;
       const [trade] = await Query.doByValue(query, item.idTrade); // array of object
@@ -111,7 +111,7 @@ export const getByUser = async (req, res) => {
       };
 
       //détermination du PRU
-      const queryPru = `SELECT SUM(price)+ SUM(commission) + SUM(tax) /  SUM(quantity) AS pru
+      const queryPru = `SELECT SUM(price)+ SUM(fees) + SUM(tax) /  SUM(quantity) AS pru
               FROM enter
               WHERE trade_id = ?
               `;
@@ -148,19 +148,19 @@ export const newEntry = async (req, res) => {
       target,
       stop,
       quantity,
-      commission,
+      fees,
       tax,
       parity,
       comment,
       strategy_id,
-      account_id,
+      portfolio_id,
       currency_id,
     } = req.body;
 
     // création du trade puis de l'entrée
     let dateToSet = new Date();
 
-    const query = `INSERT INTO trade ( stock_id, currentTarget, currentStop, comment, firstEnter, strategy_id ,  account_id ,  currency_id ) 
+    const query = `INSERT INTO trade ( stock_id, currentTarget, currentStop, comment, firstEnter, strategy_id ,  portfolio_id ,  currency_id ) 
         VALUES (?,?,?,?,?,?,?,?)`;
     const [result] = await Query.doByValues(query, {
       stock_id,
@@ -169,13 +169,13 @@ export const newEntry = async (req, res) => {
       comment,
       dateToSet,
       strategy_id,
-      account_id,
+      portfolio_id,
       currency_id,
     });
     const idTrade = result.insertId;
 
     // création de l'entrée initiale en lien avec le trade  (comments identiques, objectifs et target idem)
-    const querryEnter = `INSERT INTO enter (date, price, target, stop, quantity, commission, tax, parity, comment, trade_id)
+    const querryEnter = `INSERT INTO enter (date, price, target, stop, quantity, fees, tax, parity, comment, trade_id)
         VALUES ( ?,?,?,?,?,?,?,?,?,? )`;
     await Query.doByValues(querryEnter, {
       dateToSet,
@@ -183,7 +183,7 @@ export const newEntry = async (req, res) => {
       target,
       stop,
       quantity,
-      commission,
+      fees,
       tax,
       parity,
       comment,

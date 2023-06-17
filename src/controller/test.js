@@ -35,7 +35,10 @@ export const displayOneStock = async (req, res) => {
     `;
     const [result] = await Query.doByValues(query, { isin, place });
 
-    result[0].last = await scrapeAbc(result[0].ticker, result[0].place);
+    const {before,last} = await scrapeAbc(result[0].ticker, result[0].place);
+
+    result[0].last = last;
+    result[0].before = before;
 
     console.log("myres",  result[0]);
 

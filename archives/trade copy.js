@@ -10,7 +10,7 @@ export const getAll = async (req, res) => {
     const query = `
         SELECT stock.title, stock.id  AS stockId,  
         trade.id  AS "tradeId" , 
-        account.id  AS accountId , 
+        portfolio.id  AS portfolioId , 
         user.id AS userID,
         count(closure.id ) , 
         SUM(enter.quantity), 
@@ -20,8 +20,8 @@ export const getAll = async (req, res) => {
         JOIN trade ON enter.trade_id = trade.id 
         LEFT JOIN  closure ON closure.trade_id = trade.id
         JOIN stock ON trade.stock_id = stock.id 
-        JOIN account ON trade.account_id = account.id 
-        JOIN user ON account.user_id  = user.id 
+        JOIN portfolio ON trade.portfolio_id = portfolio.id 
+        JOIN user ON portfolio.user_id  = user.id 
         GROUP BY trade.id 
     `;
     const result = await Query.find(query);
@@ -47,7 +47,7 @@ export const getByUser = async (req, res) => {
         SELECT stock.title, stock.id  AS stockId,  stock.isin AS isin, stock.place AS place, stock.ticker AS ticker, 
         activeStock.lastQuote,
         trade.id  AS "tradeId" , trade.firstEnter, currentTarget, currentStop, trade.comment,
-        account.id  AS accountId , 
+        portfolio.id  AS portfolioId , 
         count(enter.id),
         SUM(  enter.quantity)- IF (count(closure.id ) > 0 , SUM(  closure.quantity) , 0) AS actualQuantity
         FROM enter
@@ -55,8 +55,8 @@ export const getByUser = async (req, res) => {
         LEFT JOIN  closure ON closure.trade_id = trade.id
         JOIN stock ON trade.stock_id = stock.id 
         JOIN activeStock ON activeStock.stock_id = stock.id
-        JOIN account ON trade.account_id = account.id 
-        JOIN user ON account.user_id  = user.id 
+        JOIN portfolio ON trade.portfolio_id = portfolio.id 
+        JOIN user ON portfolio.user_id  = user.id 
         WHERE user.id = ?
         GROUP BY enter.trade_id
         HAVING actualQuantity > 0
@@ -85,7 +85,7 @@ export const getByUser = async (req, res) => {
         };
 
       //détermination du PRU
-      const query2 = `SELECT SUM(price)+ SUM(commission) + SUM(tax) /  SUM(quantity) AS pru 
+      const query2 = `SELECT SUM(price)+ SUM(fees) + SUM(tax) /  SUM(quantity) AS pru 
             FROM enter 
             WHERE trade_id = ?
             `;

@@ -38,15 +38,22 @@ import puppeteer from "puppeteer";
       let lastQuote =
         +searchValue.slice(0, searchValue.indexOf("€") - 1).replace(",", ".") ||
         0;
+      // la cloture veuille
+        const searchValue2 = await currentPage.$eval(
+          "#dis03 > table > tbody > tr:nth-child(5) > td:nth-child(2) ",
+          (el) => el.innerText
+        );
+        const before = +searchValue2.replace(",", ".") || 0;; 
       // et de l'heure
       let updDate = new Date();
       let id = element.id;
       // mise à jour dans la database
       const query = `UPDATE activeStock
-          SET lastQuote=?, updDate=? 
+          SET lastQuote=?, beforeQuote=?, updDate=? 
           WHERE stock_id = ?`;
       await Query.doByValues(query, {
         lastQuote,
+        before,
         updDate,
         id,
       });
