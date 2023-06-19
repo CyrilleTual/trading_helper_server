@@ -14,17 +14,35 @@ const initial = async (id) => {
 
 async function opened(idPortfolio) {
   /**
-   * selection de tous les trades  qui ont été  ouverts pour un portfolios
+   * selection de tous les trades long ouverts pour un portfolios
+   * retour de l'id du trade, de la quantité buy et du côut total
    */
     const query = `
         select enter.trade_id as tradeId, SUM(enter.quantity) as quantity, 
-        SUM(price*quantity) as totalEnterK, SUM(fees+tax) as totalEnterTaxs, trade.position
+        SUM((price*quantity)+fees+tax) as totalCost, trade.position
         FROM enter
         JOIN trade ON trade.id = enter.trade_id
-        WHERE trade.portfolio_id =? 
+        WHERE trade.portfolio_id =? and trade.position = "long"
         GROUP By enter.trade_id
     `;
-    const opened =  await Query.doByValue(query, idPortfolio);
+    const [openedLong] =  await Query.doByValue(query, idPortfolio);
+  /**
+   * trades shorts
+   */
+    const query2 = `
+        select enter.trade_id as tradeId, SUM(enter.quantity) as quantity, 
+        SUM((price*quantity)+fees+tax) as totalCost, SUM(price*quantity) as refEnterPrice, trade.position
+        FROM enter
+        JOIN trade ON trade.id = enter.trade_id
+        WHERE trade.portfolio_id =? and trade.position = "short"
+        GROUP By enter.trade_id
+    `;
+    const [openedShort] = await Query.doByValue(query2, idPortfolio);
+
+  const opened = [{ ...openedLong, ...openedShort }];
+
+  console.log (opened)
+
   return opened
 }
 
@@ -35,8 +53,8 @@ async function opened(idPortfolio) {
 const closed = async (idPortfolio) => {
   const query = `
         select closure.trade_id as tradeId, SUM(closure.quantity) as quantity, 
-        SUM(fees+tax) as totalExitTaxs,
-        SUM(price*quantity) as totalExitPrice
+        SUM((price*quantity)-fees-tax) as totalSold
+        SUM (price*quantity) as refExitPrice
         FROM closure
         JOIN trade ON trade.id = closure.trade_id
         WHERE trade.portfolio_id =?  
@@ -57,7 +75,7 @@ const detailsCurrentTrade = async (idTrade) => {
         JOIN stock ON trade.stock_id = 	stock.id
         JOIN activeStock ON stock.id = activeStock.stock_id
         WHERE trade.id = ? 
-    `;  
+    `;
   return await Query.doByValue(query, idTrade);
 };
 
@@ -68,12 +86,9 @@ const detailsCurrentTrade = async (idTrade) => {
 async function getDetails(opened, closed) {
   let activesTrades = [];
   let closedTrades = [];
-    
 
   // on commence à construire un tableau avec tous les détails des trades
   for (const element1 of opened) {
-
-   
     // pour chaque trade
     let remains = 0;
     let flag = false;
@@ -81,8 +96,6 @@ async function getDetails(opened, closed) {
       if (element2.tradeId === element1.tradeId) {
         flag = true;
         // on verifie si il existe une cloture
- 
-
         remains = +element1.quantity - element2.quantity;
         if (remains > 0) {
           // le trade est actif
@@ -90,12 +103,10 @@ async function getDetails(opened, closed) {
             tradeId: element1.tradeId,
             position: element1.position,
             bougth: element1.quantity,
-            enterK: element1.totalEnterK,
-            enterTaxs: element1.totalEnterTaxs,
+            cost: element1.totalCost,
             remains: remains,
             sold: element2.quantity,
-            exitK: element2.totalExitPrice,
-            exitTaxs: element2.totalExitTaxs,
+            amount: element2.totalSold,
           });
         } else {
           // le trade n'est plus actif
@@ -103,42 +114,37 @@ async function getDetails(opened, closed) {
             tradeId: element1.tradeId,
             position: element1.position,
             bougth: element1.quantity,
-            enterK: element1.totalEnterK,
-            enterTaxs: element1.totalEnterTaxs,
+            cost: element1.totalCost,
             remains: remains,
             sold: element2.quantity,
-            exitK: element2.totalExitPrice,
-            exitTaxs: element2.totalExitTaxs,
+            amount: element2.totalSold,
           });
         }
       }
     }
 
     if (flag === false) {
-      // pas de cloture pour ce trade
+      // pas de clorure pour ce trade
       activesTrades.push({
         tradeId: element1.tradeId,
         position: element1.position,
         bougth: element1.quantity,
-        enterK: element1.totalEnterK,
-        enterTaxs: element1.totalEnterTaxs,
+        cost: element1.totalCost,
         remains: +element1.quantity,
         sold: 0,
-        exitK: 0,
-        exitTaxs: 0,
+        amount: 0,
       });
     }
   }
-
   // pour chaque trade ACTIF  -> infos actuelles sur target/objectif/ cours jour et précédent
   const activesDetails = [];
   for (const element of activesTrades) {
     const [details] = await detailsCurrentTrade(element.tradeId);
     activesDetails.push({ ...element, ...details });
   }
-  //console.log("actifs : ", activesDetails);
-  //console.log("totalement cloturés  : ", closedTrades);
- return { activesDetails, closedTrades };
+  // console.log("actifs : ", activesDetails);
+  // console.log("totalement cloturés  : ", closedTrades);
+  return { activesDetails, closedTrades };
 }
 
 /**
@@ -156,25 +162,26 @@ function balanceOfActivestrades(activesDetails) {
     cash: 0,
   };
 
-  for (const element of activesDetails) { // on passe en revue chaque trade
-
-    console.log("elet",element);
-    const nbActivesShares = +element.bougth - element.sold;
-    const pru = +((+element.enterK + +element.enterTaxs) / +element.bougth); // pru si long ou garantie si short
-
-    // capital investi sur chaque trade ( ce qui sort du wallet)
-    const activeK = pru * nbActivesShares;
-    balanceActives.activeK += activeK;
+  for (const element of activesDetails) {
+    const nbActivesShares = element.bougth - element.sold;
+    const pru = +(element.cost / element.bougth);
 
     
 
+    // capital investi sur chaque trade
+    const activeK = pru * nbActivesShares;
+    balanceActives.activeK += activeK;
+
     // +/- value actuelle en montant / positions actives
 
-    const pv =
-      (element.position === "long"
-        ? nbActivesShares * (element.lastQuote - pru)
-        : (nbActivesShares * ((+element.enterK - +element.enterTaxs) / +element.bougth - +element.lastQuote)));
+    console.log (element.position, pru ,element.lastQuote )
 
+
+    const pv =
+      nbActivesShares *
+      (element.position === "long"
+        ? (element.lastQuote - pru) 
+        : pru - +element.lastQuote);
     balanceActives.currentPv += pv;
 
     // potentiel restant en valeur / positions actives
@@ -187,32 +194,37 @@ function balanceOfActivestrades(activesDetails) {
 
     // performance si stop touché (risque ) en valeur / posirtions actives
     const perfIfStopped =
-      element.position === "long"
-        ? nbActivesShares * (+element.currentStop - pru)
-        : nbActivesShares * (+element.enterK / +element.bougth - +element.currentStop) - +element.enterTaxs;
+      nbActivesShares *
+      (element.position === "long"
+        ? element.currentStop - pru
+        : pru - element.currentStop);
     balanceActives.perfIfStopeed += perfIfStopped;
 
     // daily variation = valorisation jour - valorisation veille en valeur
+
+    console.log(element.lastQuote,element.beforeQuote);
+
+
     const delta =
       element.position === "long"
         ? (element.lastQuote - element.beforeQuote) * nbActivesShares
         : -(element.lastQuote - element.beforeQuote) * nbActivesShares;
+
+
+
     balanceActives.dailyVariation += delta;
 
-    // volorisation des titres actifs = ce qui rentre si je vends 
-
-    const assets =
-      element.position === "long"
-        ? +nbActivesShares * +element.lastQuote
-        : +nbActivesShares *
-          (+element.enterK / +element.bougth -
-            +element.lastQuote +
-            +element.enterK / +element.bougth);
+    // volorisation des titres actifs
+    const assets = nbActivesShares * element.lastQuote;
     balanceActives.assets += assets;
 
-
     // mouvements de cash sur le porfolio
-    const cash = -element.enterK - +element.enterTaxs + +element.exitK - +element.exitTaxs
+const cash = -element.cost + +element.amount;
+
+   
+
+
+
     balanceActives.cash += cash;
   }
 
@@ -245,28 +257,20 @@ export const getOnePortfolioDashboard = async (req, res) => {
 
     // initial credit
     portfolioDash.initCredit = +(await initial(portfolioDash.id));
-
-    // on recupère tous les trades ouverts et fermés sur le portfolio
-    const allOpensTrades = await opened(portfolioDash.id);
-    const allClosedTrades = await closed(portfolioDash.id);
+    // on recupère tous les trades longs ouverts et fermés sur le portfolio
+    const openedLong = await opened(portfolioDash.id);
+    const closedLong = await closed(portfolioDash.id);
 
     // on va recupérer les détails des trades triés par encours et fermés
     const { activesDetails, closedTrades } = await getDetails(
-      allOpensTrades,
-      allClosedTrades
+      openedLong,
+      closedLong
     );
 
-    // on va chercher la synthèse des trades actifs 
+    // on va chercher la synthèse des trades actifs
     const balanceActives = balanceOfActivestrades(activesDetails);
 
     // console.log("balanceActives:", balanceActives);
-
-    // on traite les infos pour faire le dashboard
-
-    //feedDashboard(balanceActives, closedTrades);
-
-
-
 
     portfolioDash.currentPv = +balanceActives.currentPv.toFixed(2);
     portfolioDash.currentPvPc = +(
