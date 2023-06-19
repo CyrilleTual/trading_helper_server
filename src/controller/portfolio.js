@@ -1,7 +1,7 @@
 import Query from "../model/query.js";
 
 //**********************************************************
-//* Determination de l'apport total de cash
+//* Determination de l'apport total de cash pour un portfolio
 //*
 const initial = async (id) => {
   const query = `
@@ -9,14 +9,27 @@ const initial = async (id) => {
    WHERE  deposit.porfolio_id=?
     `;
   const result = await Query.doByValue(query, id);
+
+  console.log ("couocu",result)
   return result[0].totalDeposit;
 };
+
+// apport en cash Global ************************************
+const initialGlobal = async (id) => {
+  const query = `
+   SELECT SUM(amount) as deposit FROM  deposit
+    `;
+  const result = await Query.find(query);
+  return result[0].deposit;
+};
+
+
 
 async function opened(idPortfolio) {
   /**
    * selection de tous les trades  qui ont été  ouverts pour un portfolios
    */
-    const query = `
+  const query = `
         select enter.trade_id as tradeId, SUM(enter.quantity) as quantity, 
         SUM(price*quantity) as totalEnterK, SUM(fees+tax) as totalEnterTaxs, trade.position
         FROM enter
@@ -24,8 +37,22 @@ async function opened(idPortfolio) {
         WHERE trade.portfolio_id =? 
         GROUP By enter.trade_id
     `;
-    const opened =  await Query.doByValue(query, idPortfolio);
-  return opened
+  const opened = await Query.doByValue(query, idPortfolio);
+  return opened;
+}
+ /**
+   * selection de tous les trades  qui ont été  ouverts  
+   */
+async function openedGlobal() {
+  const query = `
+        select enter.trade_id as tradeId, SUM(enter.quantity) as quantity, 
+        SUM(price*quantity) as totalEnterK, SUM(fees+tax) as totalEnterTaxs, trade.position
+        FROM enter
+        JOIN trade ON trade.id = enter.trade_id
+        GROUP By enter.trade_id
+    `;
+  const opened = await Query.find(query);
+  return opened;
 }
 
 /**
@@ -46,6 +73,22 @@ const closed = async (idPortfolio) => {
 };
 
 /**
+ * selection de tous les trades long fermés 
+ * retour de l'id du trade, de la quantité exit et du prix de vente total
+ */
+const closedGlobal = async () => {
+  const query = `
+        select closure.trade_id as tradeId, SUM(closure.quantity) as quantity, 
+        SUM(fees+tax) as totalExitTaxs,
+        SUM(price*quantity) as totalExitPrice
+        FROM closure
+        JOIN trade ON trade.id = closure.trade_id  
+        GROUP By closure.trade_id
+    `;
+  return await Query.find(query);
+};
+
+/**
  * @param {*} idTrade
  * @returns Détails du trade actifs
  */
@@ -57,7 +100,7 @@ const detailsCurrentTrade = async (idTrade) => {
         JOIN stock ON trade.stock_id = 	stock.id
         JOIN activeStock ON stock.id = activeStock.stock_id
         WHERE trade.id = ? 
-    `;  
+    `;
   return await Query.doByValue(query, idTrade);
 };
 
@@ -68,12 +111,9 @@ const detailsCurrentTrade = async (idTrade) => {
 async function getDetails(opened, closed) {
   let activesTrades = [];
   let closedTrades = [];
-    
 
   // on commence à construire un tableau avec tous les détails des trades
   for (const element1 of opened) {
-
-   
     // pour chaque trade
     let remains = 0;
     let flag = false;
@@ -81,7 +121,6 @@ async function getDetails(opened, closed) {
       if (element2.tradeId === element1.tradeId) {
         flag = true;
         // on verifie si il existe une cloture
- 
 
         remains = +element1.quantity - element2.quantity;
         if (remains > 0) {
@@ -138,7 +177,7 @@ async function getDetails(opened, closed) {
   }
   //console.log("actifs : ", activesDetails);
   //console.log("totalement cloturés  : ", closedTrades);
- return { activesDetails, closedTrades };
+  return { activesDetails, closedTrades };
 }
 
 /**
@@ -156,9 +195,10 @@ function balanceOfActivestrades(activesDetails) {
     cash: 0,
   };
 
-  for (const element of activesDetails) { // on passe en revue chaque trade
+  for (const element of activesDetails) {
+    // on passe en revue chaque trade
 
-    console.log("elet",element);
+    console.log("elet", element);
     const nbActivesShares = +element.bougth - element.sold;
     const pru = +((+element.enterK + +element.enterTaxs) / +element.bougth); // pru si long ou garantie si short
 
@@ -166,14 +206,14 @@ function balanceOfActivestrades(activesDetails) {
     const activeK = pru * nbActivesShares;
     balanceActives.activeK += activeK;
 
-    
-
     // +/- value actuelle en montant / positions actives
 
     const pv =
-      (element.position === "long"
+      element.position === "long"
         ? nbActivesShares * (element.lastQuote - pru)
-        : (nbActivesShares * ((+element.enterK - +element.enterTaxs) / +element.bougth - +element.lastQuote)));
+        : nbActivesShares *
+          ((+element.enterK - +element.enterTaxs) / +element.bougth -
+            +element.lastQuote);
 
     balanceActives.currentPv += pv;
 
@@ -189,7 +229,9 @@ function balanceOfActivestrades(activesDetails) {
     const perfIfStopped =
       element.position === "long"
         ? nbActivesShares * (+element.currentStop - pru)
-        : nbActivesShares * (+element.enterK / +element.bougth - +element.currentStop) - +element.enterTaxs;
+        : nbActivesShares *
+            (+element.enterK / +element.bougth - +element.currentStop) -
+          +element.enterTaxs;
     balanceActives.perfIfStopeed += perfIfStopped;
 
     // daily variation = valorisation jour - valorisation veille en valeur
@@ -199,7 +241,7 @@ function balanceOfActivestrades(activesDetails) {
         : -(element.lastQuote - element.beforeQuote) * nbActivesShares;
     balanceActives.dailyVariation += delta;
 
-    // volorisation des titres actifs = ce qui rentre si je vends 
+    // volorisation des titres actifs = ce qui rentre si je vends
 
     const assets =
       element.position === "long"
@@ -210,9 +252,9 @@ function balanceOfActivestrades(activesDetails) {
             +element.enterK / +element.bougth);
     balanceActives.assets += assets;
 
-
     // mouvements de cash sur le porfolio
-    const cash = -element.enterK - +element.enterTaxs + +element.exitK - +element.exitTaxs
+    const cash =
+      -element.enterK - +element.enterTaxs + +element.exitK - +element.exitTaxs;
     balanceActives.cash += cash;
   }
 
@@ -220,10 +262,73 @@ function balanceOfActivestrades(activesDetails) {
 }
 
 /**
+ * on construit le dashboard
+ * @param {*} balanceActives
+ * @param {*} closedTrades
+ */
+function feedDashboard(portfolioDash, balanceActives, closedTrades) {
+  portfolioDash.currentPv = +balanceActives.currentPv.toFixed(2);
+  portfolioDash.currentPvPc = +(
+    (balanceActives.currentPv / balanceActives.activeK) *
+    100
+  ).toFixed(2);
+
+  portfolioDash.potential = +balanceActives.potential.toFixed(2);
+  portfolioDash.potentialPc = +(
+    (balanceActives.potential / balanceActives.activeK) *
+    100
+  ).toFixed(2);
+
+  portfolioDash.perfIfStopeed = +balanceActives.perfIfStopeed.toFixed(2);
+  portfolioDash.perfIfStopeedPc = +(
+    (balanceActives.perfIfStopeed / balanceActives.activeK) *
+    100
+  ).toFixed(2);
+
+  portfolioDash.dailyVariation = +balanceActives.dailyVariation.toFixed(2);
+  portfolioDash.dailyVariationPc = +(
+    (balanceActives.dailyVariation / balanceActives.activeK) *
+    100
+  ).toFixed(2);
+
+  portfolioDash.assets = balanceActives.assets;
+
+  // pour la suite on intègre les  positions clôturées qui vont influer sur la cash du portfolio
+  let closedTradesCash = 0;
+  for (const element of closedTrades) {
+    closedTradesCash += +element.amount - +element.cost;
+  }
+
+  portfolioDash.cash = +(
+    portfolioDash.initCredit +
+    closedTradesCash +
+    balanceActives.cash
+  ).toFixed(2);
+
+  portfolioDash.totalBalance = +(
+    portfolioDash.assets + portfolioDash.cash
+  ).toFixed(2);
+
+  portfolioDash.totalPerf = +(
+    portfolioDash.totalBalance - portfolioDash.initCredit
+  ).toFixed(2);
+
+  portfolioDash.totalPerfPc = +(
+    ((portfolioDash.totalBalance - portfolioDash.initCredit) /
+      portfolioDash.initCredit) *
+    100
+  ).toFixed(2);
+
+  return portfolioDash;
+}
+
+/***********************************************************
  * On recupère le tableau de bord d'un portfolio particulier  /portfolio/dashboard/id
  */
 
 export const getOnePortfolioDashboard = async (req, res) => {
+
+ 
   try {
     const portfolioDash = {
       id: req.params.id,
@@ -256,71 +361,71 @@ export const getOnePortfolioDashboard = async (req, res) => {
       allClosedTrades
     );
 
-    // on va chercher la synthèse des trades actifs 
+    // on va chercher la synthèse des trades actifs
     const balanceActives = balanceOfActivestrades(activesDetails);
 
-    // console.log("balanceActives:", balanceActives);
+    // on traite les infos pour faire le dashboard
+    const dashboard = await feedDashboard(
+      portfolioDash,
+      balanceActives,
+      closedTrades
+    );
+
+    res.status(200).json(dashboard);
+  } catch (error) {
+    res.json({ msg: error });
+  }
+};
+
+
+/**
+ * DashBoard Global ***********  bilan de tout *************
+ * route portfolio/dashboard/global
+ */
+export const getGlobalDashboard = async (req, res) => {
+
+  try {
+    const portfolioDash = {
+      currentPv: 0,
+      currentPvPc: 0,
+      potential: 0,
+      potentialPc: 0,
+      perfIfStopeed: 0,
+      perfIfStopeedPc: 0,
+      dailyVariation: 0,
+      dailyVariationPc: 0,
+      initCredit: 0,
+      assets: 0,
+      cash: 0,
+      totalBalance: 0,
+      totalPerf: 0,
+      totalPerfPc: 0,
+    };
+
+    // initial credit
+    portfolioDash.initCredit = +(await initialGlobal());
+
+    // on recupère tous les trades ouverts et fermés 
+    const allOpensTrades = await openedGlobal();
+    const allClosedTrades = await closedGlobal();
+
+    // on va recupérer les détails des trades triés par encours et fermés
+    const { activesDetails, closedTrades } = await getDetails(
+      allOpensTrades,
+      allClosedTrades
+    );
+
+    // on va chercher la synthèse des trades actifs
+    const balanceActives = balanceOfActivestrades(activesDetails);
 
     // on traite les infos pour faire le dashboard
+    const dashboard = await feedDashboard(
+      portfolioDash,
+      balanceActives,
+      closedTrades
+    );
 
-    //feedDashboard(balanceActives, closedTrades);
-
-
-
-
-    portfolioDash.currentPv = +balanceActives.currentPv.toFixed(2);
-    portfolioDash.currentPvPc = +(
-      (balanceActives.currentPv / balanceActives.activeK) *
-      100
-    ).toFixed(2);
-
-    portfolioDash.potential = +balanceActives.potential.toFixed(2);
-    portfolioDash.potentialPc = +(
-      (balanceActives.potential / balanceActives.activeK) *
-      100
-    ).toFixed(2);
-
-    portfolioDash.perfIfStopeed = +balanceActives.perfIfStopeed.toFixed(2);
-    portfolioDash.perfIfStopeedPc = +(
-      (balanceActives.perfIfStopeed / balanceActives.activeK) *
-      100
-    ).toFixed(2);
-
-    portfolioDash.dailyVariation = +balanceActives.dailyVariation.toFixed(2);
-    portfolioDash.dailyVariationPc = +(
-      (balanceActives.dailyVariation / balanceActives.activeK) *
-      100
-    ).toFixed(2);
-
-    portfolioDash.assets = balanceActives.assets;
-
-    // pour la suite on intègre les  positions clôturées qui vont influer sur la cash du portfolio
-    let closedTradesCash = 0;
-    for (const element of closedTrades) {
-      closedTradesCash += +element.amount - +element.cost;
-    }
-
-    portfolioDash.cash = +(
-      portfolioDash.initCredit +
-      closedTradesCash +
-      balanceActives.cash
-    ).toFixed(2);
-
-    portfolioDash.totalBalance = +(
-      portfolioDash.assets + portfolioDash.cash
-    ).toFixed(2);
-
-    portfolioDash.totalPerf = +(
-      portfolioDash.totalBalance - portfolioDash.initCredit
-    ).toFixed(2);
-
-    portfolioDash.totalPerfPc = +(
-      ((portfolioDash.totalBalance - portfolioDash.initCredit) /
-        portfolioDash.initCredit) *
-      100
-    ).toFixed(2);
-
-    res.status(200).json(portfolioDash);
+    res.status(200).json(dashboard);
   } catch (error) {
     res.json({ msg: error });
   }
