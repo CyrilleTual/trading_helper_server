@@ -77,9 +77,9 @@ const signin = async (req, res) => {
     if (isSame) {
       // si ok on genere le tocken d'identifiation
       const TOKEN = jwt.sign({ id: user.id, alias: user.alias, role: user.role }, TOKEN_SECRET);
-      const { email, alias, role } = user;
+      const { id, email, alias, role } = user;
       // on envoie au front le token et des infos nécessaires
-      res.status(200).json({ msg: "Connexion réussi",  TOKEN, email, alias, role });
+      res.status(200).json({ msg: "Connexion réussi",  TOKEN, id, email, alias, role });
     } else {
       res.status(401).json(("problème d'identifiant"));
     }

@@ -1,5 +1,22 @@
 import Query from "../model/query.js";
 
+export const getPortfoliosByUser = async (req, res) => {
+
+  const {userId}= req.params
+  try {
+    const query = `SELECT portfolio.id, portfolio.title, portfolio.comment, 
+      currency.id as currency, currency.title as currency 
+      FROM portfolio
+      JOIN currency on portfolio.currency_id = currency.id
+      WHERE user_id = ?`;
+    const portfolios = await Query.doByValue(query, userId);
+    res.status(200).json(portfolios);
+  } catch (error) {
+    res.json({ msg: error });
+  }
+};
+
+
 //**********************************************************
 //* Determination de l'apport total de cash pour un portfolio
 //*
@@ -10,11 +27,11 @@ const initial = async (id) => {
     `;
   const result = await Query.doByValue(query, id);
 
-  console.log ("couocu",result)
+  
   return result[0].totalDeposit;
 };
 
-// apport en cash Global ************************************
+// apport en cash Global pour tout les comptes ***************************
 const initialGlobal = async (id) => {
   const query = `
    SELECT SUM(amount) as deposit FROM  deposit
@@ -22,6 +39,21 @@ const initialGlobal = async (id) => {
   const result = await Query.find(query);
   return result[0].deposit;
 };
+
+//**********************************************************
+//* Determination de l'apport total de cash pour un user
+//*
+const initialByUser = async (id) => {
+  const query = `
+    SELECT SUM(deposit.amount) as totalDeposit FROM deposit 
+    JOIN portfolio ON deposit.porfolio_id = portfolio.id
+    WHERE  portfolio.user_id = ?
+    `;
+  const result = await Query.doByValue(query, id);
+  return result[0].totalDeposit;
+};
+
+
 
 
 
@@ -40,9 +72,9 @@ async function opened(idPortfolio) {
   const opened = await Query.doByValue(query, idPortfolio);
   return opened;
 }
- /**
-   * selection de tous les trades  qui ont été  ouverts  
-   */
+/**
+ * selection de tous les trades  qui ont été  ouverts
+ */
 async function openedGlobal() {
   const query = `
         select enter.trade_id as tradeId, SUM(enter.quantity) as quantity, 
@@ -54,6 +86,22 @@ async function openedGlobal() {
   const opened = await Query.find(query);
   return opened;
 }
+
+
+// trades ouverts par un user **********************************
+async function openedByUser(userID) {
+  const query = `
+        select enter.trade_id as tradeId, SUM(enter.quantity) as quantity, 
+        SUM(price*quantity) as totalEnterK, SUM(fees+tax) as totalEnterTaxs, trade.position
+        FROM enter
+        JOIN trade ON trade.id = enter.trade_id
+        JOIN portfolio ON portfolio.id = trade.portfolio_id
+        WHERE portfolio.user_id = ?
+        GROUP By enter.trade_id
+    `;
+  return await Query.doByValue(query, userID);
+}
+
 
 /**
  * selection de tous les trades long fermés pour un portfolios
@@ -73,7 +121,7 @@ const closed = async (idPortfolio) => {
 };
 
 /**
- * selection de tous les trades long fermés 
+ * selection de tous les trades long fermés
  * retour de l'id du trade, de la quantité exit et du prix de vente total
  */
 const closedGlobal = async () => {
@@ -87,6 +135,32 @@ const closedGlobal = async () => {
     `;
   return await Query.find(query);
 };
+
+/**
+ * selection de tous les trades long fermés par un user
+ * retour de l'id du trade, de la quantité exit et du prix de vente total
+ */
+const closedByUser = async (userId) => {
+  const query = `
+        select closure.trade_id as tradeId, SUM(closure.quantity) as quantity, 
+        SUM(fees+tax) as totalExitTaxs,
+        SUM(price*quantity) as totalExitPrice
+        FROM closure
+        JOIN trade ON trade.id = closure.trade_id
+        JOIN portfolio ON portfolio.id = trade.portfolio_id
+        WHERE portfolio.user_id = ?
+        GROUP By closure.trade_id
+    `;
+  return await Query.doByValue(query, userId);
+};
+
+
+
+
+
+
+
+
 
 /**
  * @param {*} idTrade
@@ -198,7 +272,7 @@ function balanceOfActivestrades(activesDetails) {
   for (const element of activesDetails) {
     // on passe en revue chaque trade
 
-    console.log("elet", element);
+    //console.log("elet", element);
     const nbActivesShares = +element.bougth - element.sold;
     const pru = +((+element.enterK + +element.enterTaxs) / +element.bougth); // pru si long ou garantie si short
 
@@ -327,11 +401,9 @@ function feedDashboard(portfolioDash, balanceActives, closedTrades) {
  */
 
 export const getOnePortfolioDashboard = async (req, res) => {
-
- 
   try {
     const portfolioDash = {
-      id: req.params.id,
+      id: req.params.idPortfolio,
       currentPv: 0,
       currentPvPc: 0,
       potential: 0,
@@ -377,13 +449,11 @@ export const getOnePortfolioDashboard = async (req, res) => {
   }
 };
 
-
 /**
  * DashBoard Global ***********  bilan de tout *************
  * route portfolio/dashboard/global
  */
 export const getGlobalDashboard = async (req, res) => {
-
   try {
     const portfolioDash = {
       currentPv: 0,
@@ -405,7 +475,7 @@ export const getGlobalDashboard = async (req, res) => {
     // initial credit
     portfolioDash.initCredit = +(await initialGlobal());
 
-    // on recupère tous les trades ouverts et fermés 
+    // on recupère tous les trades ouverts et fermés
     const allOpensTrades = await openedGlobal();
     const allClosedTrades = await closedGlobal();
 
@@ -430,3 +500,55 @@ export const getGlobalDashboard = async (req, res) => {
     res.json({ msg: error });
   }
 };
+
+
+export const getGlobalDashboardOfOneUser = async (req,res) => {
+
+    try {
+      const portfolioDash = {
+        userId: req.params.userId,
+        currentPv: 0,
+        currentPvPc: 0,
+        potential: 0,
+        potentialPc: 0,
+        perfIfStopeed: 0,
+        perfIfStopeedPc: 0,
+        dailyVariation: 0,
+        dailyVariationPc: 0,
+        initCredit: 0,
+        assets: 0,
+        cash: 0,
+        totalBalance: 0,
+        totalPerf: 0,
+        totalPerfPc: 0,
+      };
+
+      // initial credit
+      portfolioDash.initCredit = +(await initialByUser(portfolioDash.userId));
+
+      // // on recupère tous les trades ouverts et fermés pour un user
+      const allOpensTradesByUser = await openedByUser(portfolioDash.userId);
+      const allClosedTradesByUser = await closedByUser(portfolioDash.userId);
+
+      // on va recupérer les détails des trades triés par encours et fermés
+      const { activesDetails, closedTrades } = await getDetails(
+        allOpensTradesByUser,
+        allClosedTradesByUser
+      );
+
+      // on va chercher la synthèse des trades actifs
+      const balanceActives = balanceOfActivestrades(activesDetails);
+
+      // on traite les infos pour faire le dashboard
+      const dashboard = await feedDashboard(
+        portfolioDash,
+        balanceActives,
+        closedTrades
+      );
+
+      res.status(200).json(dashboard);
+    } catch (error) {
+      res.json({ msg: error });
+    }
+
+}
