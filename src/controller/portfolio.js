@@ -4,7 +4,7 @@ export const getPortfoliosByUser = async (req, res) => {
   const { userId } = req.params;
   try {
     const query = `SELECT portfolio.id, portfolio.title, portfolio.comment, 
-      currency.id as currency, currency.title as currency 
+      currency.id as currencyId, currency.title as currency 
       FROM portfolio
       JOIN currency on portfolio.currency_id = currency.id
       WHERE user_id = ?`;
