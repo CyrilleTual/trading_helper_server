@@ -35,9 +35,22 @@ import puppeteer from "puppeteer";
       ); // retourne sous forme 44,94 €-1,14%
       //await browser.close();
       // nettoyage de la chaine de caractère et passage en number
-      let lastQuote =
-        +searchValue.slice(0, searchValue.indexOf("€") - 1).replace(",", ".") ||
-        0;
+
+          let lastQuote;
+
+          if (searchValue.includes("€")) {
+            lastQuote =
+              +searchValue
+                .slice(0, searchValue.indexOf("€") - 1)
+                .replace(",", ".") || 0;
+          }
+          if (searchValue.includes("$")) {
+           lastQuote =
+             +searchValue
+               .slice(0, searchValue.indexOf("$") - 1)
+               .replace(",", ".") || 0;
+          }
+
       // la cloture veuille
         const searchValue2 = await currentPage.$eval(
           "#dis03 > table > tbody > tr:nth-child(5) > td:nth-child(2) ",

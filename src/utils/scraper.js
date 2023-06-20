@@ -24,9 +24,20 @@ export async function scrapeAbc(ticker, place) {
   //console.log ("before",before);
   await browser.close();
   // nettoyage de la chaine de caractère et passage en number
-  let last = +searchValue
-    .slice(0, searchValue.indexOf("€") - 1)
-    .replace(",", ".");
+ // console.log("searchValue", searchValue);
+  let last;
+
+ if (searchValue.includes("€")) {
+    last = +searchValue
+      .slice(0, searchValue.indexOf("€") - 1)
+      .replace(",", ".");
+ }
+  if (searchValue.includes("$")) {
+    last = +searchValue
+      .slice(0, searchValue.indexOf("$") - 1)
+      .replace(",", ".");
+  }
+
   return({before,last})
 }
 

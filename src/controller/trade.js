@@ -150,7 +150,6 @@ export const newEntry = async (req, res) => {
       quantity,
       fees,
       tax,
-      parity,
       comment,
       strategy_id,
       portfolio_id,
@@ -175,8 +174,8 @@ export const newEntry = async (req, res) => {
     const idTrade = result.insertId;
 
     // création de l'entrée initiale en lien avec le trade  (comments identiques, objectifs et target idem)
-    const querryEnter = `INSERT INTO enter (date, price, target, stop, quantity, fees, tax, parity, comment, trade_id)
-        VALUES ( ?,?,?,?,?,?,?,?,?,? )`;
+    const querryEnter = `INSERT INTO enter (date, price, target, stop, quantity, fees, tax, comment, trade_id)
+        VALUES ( ?,?,?,?,?,?,?,?,? )`;
     await Query.doByValues(querryEnter, {
       dateToSet,
       price,
@@ -185,11 +184,10 @@ export const newEntry = async (req, res) => {
       quantity,
       fees,
       tax,
-      parity,
       comment,
       idTrade,
     });
-    res.status(200).json("coucou");
+    res.status(200).json("trade entré correctement");
   } catch (error) {
     res.json({ msg: error });
   }
