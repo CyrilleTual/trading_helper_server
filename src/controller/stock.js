@@ -1,6 +1,9 @@
 import Query from "../model/query.js";
 import { scrapeAbc } from "../utils/scraper.js";
 
+
+
+
 /***********************************************************
  * recherche d'un stock par son nom
  */
@@ -47,3 +50,21 @@ export const lastQuote = async (req, res) => {
     res.json({ msg: error });
   }
 }
+
+/***********************************************************
+ * recherche d'un stock par son id dans le tableau des activesstock
+ */
+export const checkActive = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const query = `
+      SELECT *  FROM activeStock 
+      WHERE stock_id = ?
+    `;
+    const result = await Query.doByValue(query, id);
+    res.status(200).json( result );
+  } catch (error) {
+    res.json({ msg: error });
+  }
+};
+

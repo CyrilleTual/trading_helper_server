@@ -194,18 +194,26 @@ export const newEntry = async (req, res) => {
       SELECT activeStock.stock_id  FROM activeStock 
       WHERE stock_id = ?
     `;
-    const existShares = await Query.doByValue(queryCheck, stock_id);
- 
-    if (existShares.length === 0) {
+    const exist = await Query.doByValue(queryCheck, stock_id);
+
+    console.log (exist.length)
+
+    if ((exist.length === 0)) {
+
+      console.log("unun", stock_id, regDate, lastQuote, beforeQuote, updDate); 
+
+
+
       // pas d'enregistrement trouvé on en créé un
-      const query = `INSERT INTO activeStock ( stock_id, lastQuote, beforeQuote) 
-        VALUES (?,?,?)`;
-      await Query.doByValues(query, {
+      const queryNewActive = `INSERT INTO activeStock ( stock_id, regDate, lastQuote, beforeQuote, updDate) 
+        VALUES (?,?,?,?,?)`;
+      const [result2] = await Query.doByValues(queryNewActive, {
         stock_id,
+        dateToSet,
         lastQuote,
         beforeQuote,
+        dateToSet,
       });
-
     }
     res.status(200).json("trade entré correctement");
   } catch (error) {
