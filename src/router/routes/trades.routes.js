@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { exitPrepare, getAll, getByUser, newEntry } from "../../controller/trade.js";
+import { exitPrepare, exitProcess, getAll, getByUser, newEntry, reEnterProcess } from "../../controller/trade.js";
 
 
 const router = Router();
@@ -8,6 +8,8 @@ const router = Router();
 router.get("/active", getAll);
 router.get("/activeByUser/:userId", getByUser);
 router.post("/newEntry", newEntry); 
-router.get("/exitPrepare/:tradeId", exitPrepare)
+router.get("/prepare/:tradeId", exitPrepare)
+router.post("/exitProcess/", exitProcess)
+router.post("/reEnter", reEnterProcess)
 
 export default router;

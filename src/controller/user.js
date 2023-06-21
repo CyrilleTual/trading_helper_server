@@ -29,7 +29,7 @@ const saltRounds = parseInt(process.env.SALT);
  */
 const signup = async (req, res) => {
 
-  console.log ("req",req.body)
+  //console.log ("req",req.body)
 
   try {
     const query =   `SELECT email, pwd 
