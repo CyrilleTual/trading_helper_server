@@ -30,7 +30,7 @@ export const searchStock = async (req, res) => {
  */
 export const lastQuote = async (req, res) => {
   const { isin, place } = req.params;
-  console.log("ici")
+   
   try {
     // recupération des champs du post
     const query = `

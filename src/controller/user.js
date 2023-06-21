@@ -65,8 +65,8 @@ const signin = async (req, res) => {
                     WHERE email = ?`;
     const [user] = await Query.doByValue(query1, email);
 
-    console.log (req.body)
-    console.log ("user", user)
+    //console.log (req.body)
+    //console.log ("user", user)
 
     if (!user || user.email !== email) {
       res.status(401).json(error("problème d'identifiant"));

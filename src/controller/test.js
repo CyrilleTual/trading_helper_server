@@ -40,7 +40,7 @@ export const displayOneStock = async (req, res) => {
     result[0].last = last;
     result[0].before = before;
 
-    console.log("myres",  result[0]);
+ 
 
     res.status(200).json({ result });
   } catch (error) {

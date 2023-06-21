@@ -117,6 +117,11 @@ export const getByUser = async (req, res) => {
               `;
       const [{ pru }] = await Query.doByValue(queryPru, [item.idTrade]);
 
+      console.log ("ici le pru", pru)
+
+
+
+
       // on complète et formate les informations à renvoyer
       actulizedTrade.firstEnter = new Date(trade.firstEnter).toLocaleDateString(
         "fr-FR"
@@ -208,6 +213,60 @@ export const newEntry = async (req, res) => {
 
     }
     res.status(200).json("trade entré correctement");
+  } catch (error) {
+    res.json({ msg: error });
+  }
+};
+
+
+/**
+ * Exit sur un trade -> données pour affichage du formulaire 
+ */
+export const exitPrepare = async (req, res) => {
+
+   const { tradeId } = req.params;
+
+  try {
+
+    // on cherhche toutes les entrées sur le trade
+    const enterQuery = `Select SUM((enter.price * enter.quantity)+enter.fees+enter.tax) as enterValue, SUM(quantity) as enterQuantity
+    FROM enter
+    WHERE enter.trade_id = ?`;
+    const  [enter] = await Query.doByValue(enterQuery, tradeId);
+
+    // on cherche toutes les sorties sur le trade
+    const closureQuery = `Select COALESCE(SUM((closure.price * closure.quantity)+closure.fees+closure.tax),0) as closureValue, 
+      COALESCE (SUM(quantity),0) as closureQuantity
+      FROM closure
+      WHERE closure.trade_id = ? `;
+    const [closure]  = await Query.doByValue(closureQuery, tradeId);
+
+    // on déternime les paramètres du trade 
+    const tradeQuery = `SELECT DISTINCT stock.title, stock.isin AS isin, 
+            stock.place AS place, stock.ticker AS ticker, 
+            activeStock.lastQuote,
+            trade.firstEnter, currentTarget as target, currentStop as stop, trade.comment, trade.position,
+            portfolio.title  AS portfolio
+            FROM enter
+            JOIN trade ON enter.trade_id = trade.id 
+            JOIN stock ON trade.stock_id = stock.id 
+            JOIN activeStock ON activeStock.stock_id = stock.id
+            JOIN portfolio ON trade.portfolio_id = portfolio.id         
+            WHERE trade.id = ?`;
+
+    const [ trade ] = await Query.doByValue(tradeQuery, tradeId);     
+
+    const calculs = {
+      pru: (enter.enterValue / enter.enterQuantity).toFixed(3),
+      remains: +enter.enterQuantity - closure.closureQuantity,
+      exposition:
+        ((+enter.enterQuantity - closure.closureQuantity) * trade.lastQuote).toFixed(3),
+      opToDo : (trade.position = "long" ? "sell" : "buy")  
+    };
+    
+    const result = {...enter, ...closure, ...calculs, ...trade}
+
+    res.status(200).json(result);
   } catch (error) {
     res.json({ msg: error });
   }

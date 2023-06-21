@@ -555,7 +555,7 @@ export const getDetailsOfOnePorfolio = async (req, res) => {
       allClosedTrades
     );
 
-    console.log(activesDetails);
+    //console.log(activesDetails);
 
     ///////////////////////////////////
     // pour chaque trade actif on va construire le tableaux des détails
