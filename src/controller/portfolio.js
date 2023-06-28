@@ -335,8 +335,8 @@ function balanceOfActivestrades(activesDetails) {
     balanceActives.cash += cash;
   }
 
-  //console.log (balanceActives)
-
+ balanceActives.assets = balanceActives.assets.toFixed(2);
+ 
   return balanceActives;
 }
 
@@ -347,12 +347,12 @@ function balanceOfActivestrades(activesDetails) {
  */
 function feedDashboard(portfolioDash, balanceActives, closedTrades) {
   portfolioDash.currentPv = +balanceActives.currentPv.toFixed(2);
-  portfolioDash.currentPvPc = +(
+  portfolioDash.currentPvPc = (
     (balanceActives.currentPv / balanceActives.activeK) *
     100
   ).toFixed(2);
 
-  portfolioDash.potential = +balanceActives.potential.toFixed(2);
+  portfolioDash.potential = balanceActives.potential.toFixed(2);
   portfolioDash.potentialPc = +(
     (balanceActives.potential / balanceActives.activeK) *
     100
@@ -398,6 +398,8 @@ function feedDashboard(portfolioDash, balanceActives, closedTrades) {
       +portfolioDash.initCredit) *
     100
   ).toFixed(2);
+
+
 
   return portfolioDash;
 }
