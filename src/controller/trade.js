@@ -239,7 +239,7 @@ export const exitPrepare = async (req, res) => {
             stock.place AS place, stock.ticker AS ticker, 
             activeStock.lastQuote,
             trade.id as tradeId, trade.firstEnter, currentTarget as target, currentStop as stop, trade.comment, trade.position,
-            portfolio.title  AS portfolio
+            portfolio.title  AS portfolio, portfolio.id AS portfolio_id
             FROM enter
             JOIN trade ON enter.trade_id = trade.id 
             JOIN stock ON trade.stock_id = stock.id 

@@ -149,7 +149,7 @@ const closedByUser = async (userId) => {
  * @param {*} idTrade
  * @returns Détails du trade actifs
  */
-const detailsCurrentTrade = async (idTrade) => {
+const detailsCurrentTrade = async (idTrade, prutmp) => {
   const query = `
         SELECT trade.currentTarget, trade.currentStop, 
         stock.title,
@@ -159,7 +159,17 @@ const detailsCurrentTrade = async (idTrade) => {
         JOIN activeStock ON stock.id = activeStock.stock_id
         WHERE trade.id = ? 
     `;
-  return await Query.doByValue(query, idTrade);
+  const result = await Query.doByValue(query, idTrade);
+  if (result.length ===0 ) { result.push(
+     {
+      currentTarget: prutmp,
+      currentStop: prutmp,
+      title: 'Error loading',
+      lastQuote: prutmp,
+      beforeQuote: prutmp
+    }
+  )}
+    return result;
 };
 
 /***********************************************************
@@ -230,11 +240,18 @@ async function getDetails(opened, closed) {
   // pour chaque trade ACTIF  -> infos actuelles sur target/objectif/ cours jour et précédent
   const activesDetails = [];
   for (const element of activesTrades) {
-    const [details] = await detailsCurrentTrade(element.tradeId);
+
+    // on passe le pru pour permettre de définir une valeur par defaut si 
+    // pas de titre dans la DataBase
+    const prutmp = +((+element.enterK + +element.enterTaxs) / +element.bougth);
+
+    const [details] = await detailsCurrentTrade(element.tradeId, prutmp);
+
+    //console.log("detail of active", element.tradeId,"details",details);
     activesDetails.push({ ...element, ...details });
   }
   //console.log("actifs : ", activesDetails);
-  //console.log("totalement cloturés  : ", closedTrades);
+  // console.log("totalement cloturés  : ", closedTrades);
   return { activesDetails, closedTrades };
 }
 
@@ -256,16 +273,18 @@ function balanceOfActivestrades(activesDetails) {
   for (const element of activesDetails) {
     // on passe en revue chaque trade
 
-    //console.log("elet", element);
-    const nbActivesShares = +element.bougth - element.sold;
+    // console.log(element)
+
+    const nbActivesShares = +element.bougth - +element.sold;
     const pru = +((+element.enterK + +element.enterTaxs) / +element.bougth); // pru si long ou garantie si short
+
+    //console.log (pru)
 
     // capital investi sur chaque trade ( ce qui sort du wallet)
     const activeK = pru * nbActivesShares;
     balanceActives.activeK += activeK;
 
     // +/- value actuelle en montant / positions actives
-
     const pv =
       element.position === "long"
         ? nbActivesShares * (element.lastQuote - pru)
@@ -299,7 +318,7 @@ function balanceOfActivestrades(activesDetails) {
         : -(element.lastQuote - element.beforeQuote) * nbActivesShares;
     balanceActives.dailyVariation += delta;
 
-    // volorisation des titres actifs = ce qui rentre si je vends
+    // potentiel des titres actifs = ce qui rentre si je vends
 
     const assets =
       element.position === "long"
@@ -315,6 +334,8 @@ function balanceOfActivestrades(activesDetails) {
       -element.enterK - +element.enterTaxs + +element.exitK - +element.exitTaxs;
     balanceActives.cash += cash;
   }
+
+  //console.log (balanceActives)
 
   return balanceActives;
 }
@@ -353,27 +374,28 @@ function feedDashboard(portfolioDash, balanceActives, closedTrades) {
 
   // pour la suite on intègre les  positions clôturées qui vont influer sur la cash du portfolio
   let closedTradesCash = 0;
+
   for (const element of closedTrades) {
-    closedTradesCash += +element.amount - +element.cost;
+    closedTradesCash += +element.bougth - +element.sold;
   }
 
   portfolioDash.cash = +(
-    portfolioDash.initCredit +
+    +portfolioDash.initCredit +
     closedTradesCash +
     balanceActives.cash
   ).toFixed(2);
 
   portfolioDash.totalBalance = +(
-    portfolioDash.assets + portfolioDash.cash
+    +portfolioDash.assets + portfolioDash.cash
   ).toFixed(2);
 
   portfolioDash.totalPerf = +(
-    portfolioDash.totalBalance - portfolioDash.initCredit
+    +portfolioDash.totalBalance - portfolioDash.initCredit
   ).toFixed(2);
 
   portfolioDash.totalPerfPc = +(
-    ((portfolioDash.totalBalance - portfolioDash.initCredit) /
-      portfolioDash.initCredit) *
+    ((+portfolioDash.totalBalance - portfolioDash.initCredit) /
+      +portfolioDash.initCredit) *
     100
   ).toFixed(2);
 
@@ -522,8 +544,12 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
       allClosedTradesByUser
     );
 
+    //console.log(activesDetails, closedTrades);
+
     // on va chercher la synthèse des trades actifs
     const balanceActives = balanceOfActivestrades(activesDetails);
+
+    //console.log (balanceActives);
 
     // on traite les infos pour faire le dashboard
     const dashboard = await feedDashboard(
@@ -563,11 +589,10 @@ export const getDetailsOfOnePorfolio = async (req, res) => {
     const detailledTrades = [];
 
     for (const element of activesDetails) {
-      
       const trade = {
         tradeId: element.tradeId,
         title: element.title,
-        last: +(+element.lastQuote).toFixed(2) ,
+        last: +(+element.lastQuote).toFixed(2),
         position: element.position,
         pru: 0,
         currentPv: 0,
@@ -579,7 +604,7 @@ export const getDetailsOfOnePorfolio = async (req, res) => {
         dailyVariation: 0,
         dailyVariationPc: 0,
         target: +(+element.currentTarget).toFixed(2),
-        stop: +((+element.currentStop).toFixed(2)),
+        stop: +(+element.currentStop).toFixed(2),
         initialValue: 0,
         actualValue: 0,
         nbActivesShares: 0,
@@ -594,49 +619,59 @@ export const getDetailsOfOnePorfolio = async (req, res) => {
       trade.nbActivesShares = nbActivesShares;
 
       // +/- value actuelle en montant / positions actives
-      trade.currentPv =
-        +(element.position === "long"
+      trade.currentPv = +(
+        element.position === "long"
           ? nbActivesShares * (element.lastQuote - pru)
           : nbActivesShares *
             ((+element.enterK - +element.enterTaxs) / +element.bougth -
-              +element.lastQuote)).toFixed(2);
-      trade.currentPvPc = +((trade.currentPv/activeK*100).toFixed(2) )       
+              +element.lastQuote)
+      ).toFixed(2);
+      trade.currentPvPc = +((trade.currentPv / activeK) * 100).toFixed(2);
 
       // potentiel restant en valeur / positions actives
-      trade.potential =
-        +(nbActivesShares *
+      trade.potential = +(
+        nbActivesShares *
         (element.position === "long"
           ? element.currentTarget - element.lastQuote
-          : element.lastQuote - element.currentTarget)).toFixed(2);
-      trade.potentialPc = +((trade.potential/activeK*100 ).toFixed(2)) 
+          : element.lastQuote - element.currentTarget)
+      ).toFixed(2);
+      trade.potentialPc = +((trade.potential / activeK) * 100).toFixed(2);
 
       // performance si stop touché (risque ) en valeur / posirtions actives
-      trade.perfIfStopeed =
-       +( element.position === "long"
+      trade.perfIfStopeed = +(
+        element.position === "long"
           ? nbActivesShares * (+element.currentStop - pru)
           : nbActivesShares *
               (+element.enterK / +element.bougth - +element.currentStop) -
-            +element.enterTaxs).toFixed(2);
-      trade.perfIfStopeedPc = +((trade.perfIfStopeed / activeK *100).toFixed(2))     
+            +element.enterTaxs
+      ).toFixed(2);
+      trade.perfIfStopeedPc = +((trade.perfIfStopeed / activeK) * 100).toFixed(
+        2
+      );
 
       // daily variation = valorisation jour - valorisation veille en valeur
-      trade.dailyVariation =
-        +(element.position === "long"
+      trade.dailyVariation = +(
+        element.position === "long"
           ? (element.lastQuote - element.beforeQuote) * nbActivesShares
-          : -(element.lastQuote - element.beforeQuote) * nbActivesShares).toFixed(2);
-      trade.dailyVariationPc = +((trade.dailyVariation/activeK*100).toFixed(2))
+          : -(element.lastQuote - element.beforeQuote) * nbActivesShares
+      ).toFixed(2);
+      trade.dailyVariationPc = +(
+        (trade.dailyVariation / activeK) *
+        100
+      ).toFixed(2);
 
-      trade.initialValue = +(activeK).toFixed(2);
+      trade.initialValue = +activeK.toFixed(2);
 
       // exposition :
-       trade.actualValue =
-         +(element.position === "long"
-           ? +nbActivesShares * +element.lastQuote
-           : +nbActivesShares *
-             (+element.enterK / +element.bougth -
-               +element.lastQuote +
-               +element.enterK / +element.bougth)).toFixed(2);
-       
+      trade.actualValue = +(
+        element.position === "long"
+          ? +nbActivesShares * +element.lastQuote
+          : +nbActivesShares *
+            (+element.enterK / +element.bougth -
+              +element.lastQuote +
+              +element.enterK / +element.bougth)
+      ).toFixed(2);
+
       detailledTrades.push(trade);
     }
 
