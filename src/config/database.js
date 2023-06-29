@@ -17,6 +17,10 @@ const pool = mysql.createPool({
   keepAliveInitialDelay: 0,
 });
 
+
+
+
+
 // pool.on("acquire", function (connection) {
 //   console.log("Connection %d acquired", connection.threadId);
 // });
