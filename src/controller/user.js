@@ -38,6 +38,7 @@ const signup = async (req, res) => {
     const [isUserExist] = await Query.doByValue(query, req.body.email);
     // todo : le mot de passe exite déja ->
     // le user n'existe pas => création
+  
     if (!isUserExist) {
       const { email, pwd, alias } = req.body;
       const hashedPWD = await hash(pwd, saltRounds);
