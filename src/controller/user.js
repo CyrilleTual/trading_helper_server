@@ -29,17 +29,25 @@ const saltRounds = parseInt(process.env.SALT);
  */
 const signup = async (req, res) => {
 
-  //console.log ("req",req.body)
+
 
   try {
-    const query =   `SELECT email, pwd 
+    const query =   `SELECT email, alias
                     FROM user 
                     WHERE email = ?`;
-    const [isUserExist] = await Query.doByValue(query, req.body.email);
+    const isUserExist = await Query.doByValue(query, req.body.email);
+
+   
+
     // todo : le mot de passe exite déja ->
+    if (isUserExist.length > 0) {
+      res.status(422).json({ msg: "mail existant" });
+    }  
     // le user n'existe pas => création
+
+   
   
-    if (!isUserExist) {
+    if (isUserExist.length === 0) {
       const { email, pwd, alias } = req.body;
       const hashedPWD = await hash(pwd, saltRounds);
       const query =`INSERT INTO user (email, pwd, alias, role_id) 
@@ -48,7 +56,7 @@ const signup = async (req, res) => {
       res.status(201).json({ msg: "utilisateur créé !", data: result });
     }
   } catch (error) {
-      res.status(401).json("problème d'identifiant", error);
+      res.status(401).json({msg:"problème d'identifiant", data:error});
     //throw Error(error);
   }
 };
@@ -65,7 +73,7 @@ const signin = async (req, res) => {
                     JOIN role ON role.id = user.role_id
                     WHERE email = ?`;
     const [user] = await Query.doByValue(query1, email);
-
+  
     //console.log (req.body)
     //console.log ("user", user)
 
