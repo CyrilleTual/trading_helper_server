@@ -117,7 +117,7 @@ export const getByUser = async (req, res) => {
               `;
       const [{ pru }] = await Query.doByValue(queryPru, [item.idTrade]);
 
-      console.log("ici le pru", pru);
+     // console.log("ici le pru", pru);
 
       // on complète et formate les informations à renvoyer
       actulizedTrade.firstEnter = new Date(trade.firstEnter).toLocaleDateString(
@@ -377,6 +377,42 @@ export const reEnterProcess = async (req, res) => {
     });
 
     res.status(200).json("trade entré correctement");
+  } catch (error) {
+    res.json({ msg: error });
+  }
+};
+
+// verification de l'existance de trade actif (pour eviter les doublons)
+
+export const checkIfActiveTrade = async (req, res) => {
+  const { idStock, idPortfolio } = req.params;
+
+  try {
+    const query = `SELECT id FROM trade WHERE stock_id = ? and portfolio_id = ? `;
+
+    const [existingTrades] = await Query.doByValues(query, {
+      idStock,
+      idPortfolio,
+    });
+
+    //(existingTrades); // tableau d'objet ex: [ { id: 114 }, { id: 120 } ]
+    // pour chaque trade on va compter le nombre d'entrée et celui des sorties
+
+    const activeTrade = [];
+
+    for (const trade of existingTrades) {
+      const queryEnter = `SELECT COALESCE(SUM(quantity),0)  as nbEnter  FROM enter WHERE trade_id = ?`;
+      const queryClosure = `SELECT COALESCE(SUM(quantity),0) as nbClosure  FROM closure WHERE trade_id = ? `;
+      const [enter] = await Query.doByValue(queryEnter, trade.id);
+      const [closure] = await Query.doByValue(queryClosure, trade.id);
+      const stockLeft = +enter.nbEnter - closure.nbClosure;
+      console.log(trade.id, stockLeft);
+      if (stockLeft > 0) {
+        activeTrade.push(trade.id);
+      }
+      console.log(activeTrade);
+    }
+    res.status(200).json(activeTrade);
   } catch (error) {
     res.json({ msg: error });
   }

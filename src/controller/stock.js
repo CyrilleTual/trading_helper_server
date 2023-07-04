@@ -10,14 +10,18 @@ import { scrapeAbc } from "../utils/scraper.js";
 export const searchStock = async (req, res) => {
   const { title } = req.params;
   const searchTerm = `%${title}%`
+  const searchTerm2 = `%${title}%`;
+  const searchTerm3 = `%${title}%`;
+
   try {
     // recupération des champs du post
     const query = `
-        SELECT id, isin, title, ticker, place FROM stock 
-        WHERE title LIKE ? 
+        SELECT id, isin, title, ticker, place 
+        FROM stock 
+        WHERE  title LIKE ? OR ticker LIKE ? OR isin LIKE ? 
         LIMIT 25
     `;
-    const result = await Query.doByValues(query, { searchTerm });
+    const result = await Query.doByValues(query, { searchTerm, searchTerm2, searchTerm3 });
 
     res.status(200).json( result[0] );
   } catch (error) {
