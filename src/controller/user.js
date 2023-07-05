@@ -28,25 +28,16 @@ const saltRounds = parseInt(process.env.SALT);
  * Création d'un nouvel user -  avec le statut de visiteur par defaut
  */
 const signup = async (req, res) => {
-
-
-
   try {
     const query =   `SELECT email, alias
                     FROM user 
                     WHERE email = ?`;
     const isUserExist = await Query.doByValue(query, req.body.email);
-
-   
-
-    // todo : le mot de passe exite déja ->
+    // le mot de passe exite déja ->
     if (isUserExist.length > 0) {
       res.status(422).json({ msg: "mail existant" });
     }  
     // le user n'existe pas => création
-
-   
-  
     if (isUserExist.length === 0) {
       const { email, pwd, alias } = req.body;
       const hashedPWD = await hash(pwd, saltRounds);
