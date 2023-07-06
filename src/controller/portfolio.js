@@ -1,5 +1,35 @@
 import Query from "../model/query.js";
 
+export const newPortfolio = async (req, res) => {
+  try {
+    const { title, comment, deposit, user_id, currency_id, status } = req.body;
+
+    const query = `INSERT INTO portfolio (title, comment, user_id,          currency_id, status  ) 
+      VALUES (?,?,?,?,?)`;
+    const [result] = await Query.doByValues(query, {
+      title,
+      comment,
+      user_id,
+      currency_id,
+      status,
+    });
+
+    // ensuite faire un versement 
+    const idPort = await result.insertId;
+    const query2 = `INSERT INTO deposit(porfolio_id, amount) VALUES (?,?)`;
+    await Query.doByValues(query2, {
+    idPort,
+    deposit,
+    });
+    res.status(200).json({ msg: "portefeuille créé" });
+  } catch (error) {
+    res.json({ msg: error });
+  }
+};
+
+//**********************************************************
+//* liste des portfolios pour un user
+//*
 export const getPortfoliosByUser = async (req, res) => {
   const { userId } = req.params;
   try {
@@ -160,16 +190,16 @@ const detailsCurrentTrade = async (idTrade, prutmp) => {
         WHERE trade.id = ? 
     `;
   const result = await Query.doByValue(query, idTrade);
-  if (result.length ===0 ) { result.push(
-     {
+  if (result.length === 0) {
+    result.push({
       currentTarget: prutmp,
       currentStop: prutmp,
-      title: 'Error loading',
+      title: "Error loading",
       lastQuote: prutmp,
-      beforeQuote: prutmp
-    }
-  )}
-    return result;
+      beforeQuote: prutmp,
+    });
+  }
+  return result;
 };
 
 /***********************************************************
@@ -240,8 +270,7 @@ async function getDetails(opened, closed) {
   // pour chaque trade ACTIF  -> infos actuelles sur target/objectif/ cours jour et précédent
   const activesDetails = [];
   for (const element of activesTrades) {
-
-    // on passe le pru pour permettre de définir une valeur par defaut si 
+    // on passe le pru pour permettre de définir une valeur par defaut si
     // pas de titre dans la DataBase
     const prutmp = +((+element.enterK + +element.enterTaxs) / +element.bougth);
 
@@ -335,8 +364,8 @@ function balanceOfActivestrades(activesDetails) {
     balanceActives.cash += cash;
   }
 
- balanceActives.assets = balanceActives.assets.toFixed(2);
- 
+  balanceActives.assets = balanceActives.assets.toFixed(2);
+
   return balanceActives;
 }
 
@@ -398,8 +427,6 @@ function feedDashboard(portfolioDash, balanceActives, closedTrades) {
       +portfolioDash.initCredit) *
     100
   ).toFixed(2);
-
-
 
   return portfolioDash;
 }
