@@ -17,12 +17,12 @@ export const newPortfolio = async (req, res) => {
       status,
     });
 
-    // ensuite faire un versement
+    // ensuite faire un versement 
     const idPort = await result.insertId;
     const query2 = `INSERT INTO deposit(porfolio_id, amount) VALUES (?,?)`;
     await Query.doByValues(query2, {
-      idPort,
-      deposit,
+    idPort,
+    deposit,
     });
     res.status(200).json({ msg: "portefeuille créé" });
   } catch (error) {
@@ -30,26 +30,20 @@ export const newPortfolio = async (req, res) => {
   }
 };
 
+
+
 //**********************************************************
 //* liste des portfolios pour un user (userId)
 //*
-async function portfoliosByUser(userId) {
-  const query = `SELECT portfolio.id, portfolio.title, portfolio.comment, 
+export const getPortfoliosByUser = async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const query = `SELECT portfolio.id, portfolio.title, portfolio.comment, 
       currency.id as currencyId, currency.title as currency 
       FROM portfolio
       JOIN currency on portfolio.currency_id = currency.id
       WHERE user_id = ?`;
-  const portfolios = await Query.doByValue(query, userId);
-  return portfolios;
-}
-
-/**
- * retourne les portfolios,  route /portfolio/user/:userId
- */
-export const getPortfoliosByUser = async (req, res) => {
-  const { userId } = req.params;
-  try {
-    const portfolios = await portfoliosByUser(userId);
+    const portfolios = await Query.doByValue(query, userId);
     res.status(200).json(portfolios);
   } catch (error) {
     res.json({ msg: error });
@@ -57,16 +51,18 @@ export const getPortfoliosByUser = async (req, res) => {
 };
 
 /**
- * informations d'un portfolio par id
+ * informations d'un portfolio par id  
  */
 const portfolioInfos = async (id) => {
-  const query = `
+ const query = `
    SELECT title, comment, user_id as userId, currency_id as currencyId FROM portfolio 
    WHERE  id=?
     `;
   const result = await Query.doByValue(query, id);
   return result[0];
-};
+}
+
+
 
 //**********************************************************
 //* Determination de l'apport total de cash pour un portfolio
@@ -89,6 +85,9 @@ const initialGlobal = async (id) => {
   const result = await Query.find(query);
   return result[0].deposit;
 };
+
+
+
 
 //**********************************************************
 //* Determination de l'apport total de cash pour un user
@@ -400,30 +399,30 @@ function balanceOfActivestrades(activesDetails) {
  */
 function feedDashboard(portfolioDash, balanceActives, closedTrades) {
   portfolioDash.currentPv = +balanceActives.currentPv.toFixed(2);
-  portfolioDash.activeK = +balanceActives.activeK.toFixed(2);
-  portfolioDash.currentPvPc =
-    balanceActives.activeK !==0 ? +
-    ((balanceActives.currentPv / balanceActives.activeK) * 100).toFixed(2):0;
+  portfolioDash.currentPvPc = (
+    (balanceActives.currentPv / balanceActives.activeK) *
+    100
+  ).toFixed(2);
 
-  portfolioDash.potential = +balanceActives.potential.toFixed(2);
-  portfolioDash.potentialPc = balanceActives.activeK !==0 ? +(
+  portfolioDash.potential = balanceActives.potential.toFixed(2);
+  portfolioDash.potentialPc = +(
     (balanceActives.potential / balanceActives.activeK) *
     100
-  ).toFixed(2):0;
+  ).toFixed(2);
 
   portfolioDash.perfIfStopeed = +balanceActives.perfIfStopeed.toFixed(2);
-  portfolioDash.perfIfStopeedPc = balanceActives.activeK !==0 ? +(
+  portfolioDash.perfIfStopeedPc = +(
     (balanceActives.perfIfStopeed / balanceActives.activeK) *
     100
-  ).toFixed(2):0;
+  ).toFixed(2);
 
   portfolioDash.dailyVariation = +balanceActives.dailyVariation.toFixed(2);
-  portfolioDash.dailyVariationPc = balanceActives.activeK !==0 ? +(
+  portfolioDash.dailyVariationPc = +(
     (balanceActives.dailyVariation / balanceActives.activeK) *
     100
-  ).toFixed(2):0;
+  ).toFixed(2);
 
-  portfolioDash.assets = +balanceActives.assets;
+  portfolioDash.assets = balanceActives.assets;
 
   // pour la suite on intègre les  positions clôturées qui vont influer sur la cash du portfolio
   let closedTradesCash = 0;
@@ -446,74 +445,66 @@ function feedDashboard(portfolioDash, balanceActives, closedTrades) {
     +portfolioDash.totalBalance - portfolioDash.initCredit
   ).toFixed(2);
 
-  portfolioDash.totalPerfPc = portfolioDash.initCredit !==0 ? +(
+  portfolioDash.totalPerfPc = +(
     ((+portfolioDash.totalBalance - portfolioDash.initCredit) /
       +portfolioDash.initCredit) *
     100
-  ).toFixed(2) :0 ;
+  ).toFixed(2);
 
   return portfolioDash;
 }
 
 /***********************************************************
- * On recupère le tableau de bord d'un portfolio particulier (portfolioId)
+ * On recupère le tableau de bord d'un portfolio particulier  /portfolio/dashboard/id
  */
-async function portfolioDashboard(portfolioId) {
-  const portfolioDash = {
-    id: portfolioId,
-    currentPv: 0,
-    currentPvPc: 0,
-    potential: 0,
-    potentialPc: 0,
-    perfIfStopeed: 0,
-    perfIfStopeedPc: 0,
-    dailyVariation: 0,
-    dailyVariationPc: 0,
-    initCredit: 0,
-    assets: 0,
-    cash: 0,
-    totalBalance: 0,
-    totalPerf: 0,
-    totalPerfPc: 0,
-    currencyId: 0,
-  };
 
-  // set de la devise
-  portfolioDash.currencyId = (
-    await portfolioInfos(portfolioDash.id)
-  ).currencyId;
-
-  // initial credit
-  portfolioDash.initCredit = +(await initial(portfolioDash.id));
-
-  // on recupère tous les trades ouverts et fermés sur le portfolio
-  const allOpensTrades = await opened(portfolioDash.id);
-  const allClosedTrades = await closed(portfolioDash.id);
-
-  // on va recupérer les détails des trades triés par encours et fermés
-  const { activesDetails, closedTrades } = await getDetails(
-    allOpensTrades,
-    allClosedTrades
-  );
-
-  // on va chercher la synthèse des trades actifs
-  const balanceActives = balanceOfActivestrades(activesDetails);
-
-  // on traite les infos pour faire le dashboard
-  const dashboard = await feedDashboard(
-    portfolioDash,
-    balanceActives,
-    closedTrades
-  );
-  return dashboard;
-}
-
-/**
- * dashboard d'un portfolio par la route  /portfolio/dashboard/id
- */
 export const getOnePortfolioDashboard = async (req, res) => {
   try {
-    const dashboard = await portfolioDashboard(req.params.idPortfolio);
+    const portfolioDash = {
+      id: req.params.idPortfolio,
+      currentPv: 0,
+      currentPvPc: 0,
+      potential: 0,
+      potentialPc: 0,
+      perfIfStopeed: 0,
+      perfIfStopeedPc: 0,
+      dailyVariation: 0,
+      dailyVariationPc: 0,
+      initCredit: 0,
+      assets: 0,
+      cash: 0,
+      totalBalance: 0,
+      totalPerf: 0,
+      totalPerfPc: 0, 
+      currencyId: 0, 
+    };
+    
+    // set de la devise
+    portfolioDash.currencyId = (await (portfolioInfos(portfolioDash.id))).currencyId;
+
+    // initial credit
+    portfolioDash.initCredit = +(await initial(portfolioDash.id));
+
+    // on recupère tous les trades ouverts et fermés sur le portfolio
+    const allOpensTrades = await opened(portfolioDash.id);
+    const allClosedTrades = await closed(portfolioDash.id);
+
+    // on va recupérer les détails des trades triés par encours et fermés
+    const { activesDetails, closedTrades } = await getDetails(
+      allOpensTrades,
+      allClosedTrades
+    );
+
+    // on va chercher la synthèse des trades actifs
+    const balanceActives = balanceOfActivestrades(activesDetails);
+
+    // on traite les infos pour faire le dashboard
+    const dashboard = await feedDashboard(
+      portfolioDash,
+      balanceActives,
+      closedTrades
+    );
+
     res.status(200).json(dashboard);
   } catch (error) {
     res.json({ msg: error });
@@ -577,11 +568,11 @@ export const getOnePortfolioDashboard = async (req, res) => {
  *
  */
 export const getGlobalDashboardOfOneUser = async (req, res) => {
-  // currency de l'application
+
+  // currency de l'application 
   const appCurrency = +process.env.APP_CURRENCY_ID;
 
   try {
-
     const portfolioDash = {
       userId: req.params.userId,
       currentPv: 0,
@@ -599,21 +590,6 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
       totalPerf: 0,
       totalPerfPc: 0,
     };
-
-    // on recupère la liste des portfolios de l'user
-    const portfolios = await portfoliosByUser(portfolioDash.userId);
-
-    // pour chaque portfolio on va chercher le dashboard
-    portfolios.map (async portfolio => {
-      const dash = await portfolioDashboard(portfolio.id);
-      console.log (dash)
-    })
-
- 
-
-
-
-
 
     // initial credit
     portfolioDash.initCredit = +(await initialByUser(portfolioDash.userId));
@@ -649,7 +625,7 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
 };
 
 /***********************************************************
- * On recupère le detail d'un portfolio particulier  /portfolio/dashboard/id
+ * On recupère le tableau de bord d'un portfolio particulier  /portfolio/dashboard/id
  */
 
 export const getDetailsOfOnePorfolio = async (req, res) => {
@@ -665,6 +641,8 @@ export const getDetailsOfOnePorfolio = async (req, res) => {
       allOpensTrades,
       allClosedTrades
     );
+
+    //console.log(activesDetails);
 
     ///////////////////////////////////
     // pour chaque trade actif on va construire le tableaux des détails
