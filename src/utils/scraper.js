@@ -1,6 +1,5 @@
 //const puppeteer = require("puppeteer");
-import puppeteer  from "puppeteer";
-
+import puppeteer from "puppeteer";
 
 /**
  * // on passe en argument le ticker et la place de cotation
@@ -16,31 +15,33 @@ export async function scrapeAbc(ticker, place) {
   const urlabc = "https://www.abcbourse.com/cotation/";
   await page.goto(`${urlabc}${title}`);
   const searchValue = await page.$eval("#vZone", (el) => el.innerText); // retourne sous forme 44,94 €-1,14%
-  const searchValue2 =  await page.$eval(
+  const searchValue2 = await page.$eval(
     "#dis03 > table > tbody > tr:nth-child(5) > td:nth-child(2) ",
     (el) => el.innerText
   );
-  const before = +(searchValue2.replace(",", "."));
+  const before = +searchValue2.replace(",", ".");
   //console.log ("before",before);
   await browser.close();
   // nettoyage de la chaine de caractère et passage en number
- // console.log("searchValue", searchValue);
+  // console.log("searchValue", searchValue);
   let last;
+  let currency;
 
- if (searchValue.includes("€")) {
+  if (searchValue.includes("€")) {
     last = +searchValue
       .slice(0, searchValue.indexOf("€") - 1)
       .replace(",", ".");
- }
+    currency = "€";
+  }
   if (searchValue.includes("$")) {
     last = +searchValue
       .slice(0, searchValue.indexOf("$") - 1)
       .replace(",", ".");
+    currency = "$";
   }
-
-  return({before,last})
+  return { before, last, currency };
 }
 
 /***********************************************************
- * 
+ *
  */

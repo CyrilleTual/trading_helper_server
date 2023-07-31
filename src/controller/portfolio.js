@@ -1,5 +1,8 @@
 import Query from "../model/query.js";
 
+/**
+ * Création d'un nouveau portefeuille
+ */
 export const newPortfolio = async (req, res) => {
   try {
     const { title, comment, deposit, user_id, currency_id, status } = req.body;
@@ -27,6 +30,8 @@ export const newPortfolio = async (req, res) => {
   }
 };
 
+
+
 //**********************************************************
 //* liste des portfolios pour un user
 //*
@@ -44,6 +49,18 @@ export const getPortfoliosByUser = async (req, res) => {
     res.json({ msg: error });
   }
 };
+
+
+const portfolioInfos = async (id) => {
+ const query = `
+   SELECT title, comment, user_id as userId, currency_id as currencyId FROM portfolio 
+   WHERE  id=?
+    `;
+  const result = await Query.doByValue(query, id);
+  return result[0];
+}
+
+
 
 //**********************************************************
 //* Determination de l'apport total de cash pour un portfolio
@@ -66,6 +83,9 @@ const initialGlobal = async (id) => {
   const result = await Query.find(query);
   return result[0].deposit;
 };
+
+
+
 
 //**********************************************************
 //* Determination de l'apport total de cash pour un user
@@ -452,8 +472,12 @@ export const getOnePortfolioDashboard = async (req, res) => {
       cash: 0,
       totalBalance: 0,
       totalPerf: 0,
-      totalPerfPc: 0,
+      totalPerfPc: 0, 
+      currencyId: 0, 
     };
+    
+    // set de la devise
+    portfolioDash.currencyId = (await (portfolioInfos(portfolioDash.id))).currencyId;
 
     // initial credit
     portfolioDash.initCredit = +(await initial(portfolioDash.id));
@@ -600,6 +624,7 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
 export const getDetailsOfOnePorfolio = async (req, res) => {
   try {
     const portfolioId = req.params.idPortfolio;
+
     // on recupère tous les trades ouverts et fermés sur le portfolio
     const allOpensTrades = await opened(portfolioId);
     const allClosedTrades = await closed(portfolioId);

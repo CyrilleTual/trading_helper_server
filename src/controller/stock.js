@@ -44,10 +44,12 @@ export const lastQuote = async (req, res) => {
     `;
     const [result] = await Query.doByValues(query, { isin, place });
 
-    const {before,last} = await scrapeAbc(result[0].ticker, result[0].place);
+    const {before,last, currency} = await scrapeAbc(result[0].ticker, result[0].place);
 
     result[0].last = last;
     result[0].before = before;
+    result[0].currency = currency;
+
 
     res.status(200).json(result[0]);
   } catch (error) {
