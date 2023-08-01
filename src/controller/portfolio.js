@@ -93,15 +93,15 @@ const initialGlobal = async (id) => {
 //**********************************************************
 //* Determination de l'apport total de cash pour un user
 //*
-const initialByUser = async (id) => {
-  const query = `
-    SELECT SUM(deposit.amount) as totalDeposit FROM deposit 
-    JOIN portfolio ON deposit.porfolio_id = portfolio.id
-    WHERE  portfolio.user_id = ?
-    `;
-  const result = await Query.doByValue(query, id);
-  return result[0].totalDeposit;
-};
+// const initialByUser = async (id) => {
+//   const query = `
+//     SELECT SUM(deposit.amount) as totalDeposit FROM deposit 
+//     JOIN portfolio ON deposit.porfolio_id = portfolio.id
+//     WHERE  portfolio.user_id = ?
+//     `;
+//   const result = await Query.doByValue(query, id);
+//   return result[0].totalDeposit;
+// };
 
 async function opened(idPortfolio) {
   /**
@@ -134,19 +134,7 @@ async function openedGlobal() {
   return opened;
 }
 
-// trades ouverts par un user **********************************
-async function openedByUser(userID) {
-  const query = `
-        select enter.trade_id as tradeId, SUM(enter.quantity) as quantity, 
-        SUM(price*quantity) as totalEnterK, SUM(fees+tax) as totalEnterTaxs, trade.position
-        FROM enter
-        JOIN trade ON trade.id = enter.trade_id
-        JOIN portfolio ON portfolio.id = trade.portfolio_id
-        WHERE portfolio.user_id = ?
-        GROUP By enter.trade_id
-    `;
-  return await Query.doByValue(query, userID);
-}
+
 
 /**
  * selection de tous les trades long fermés pour un portfolios
@@ -181,23 +169,7 @@ const closedGlobal = async () => {
   return await Query.find(query);
 };
 
-/**
- * selection de tous les trades long fermés par un user
- * retour de l'id du trade, de la quantité exit et du prix de vente total
- */
-const closedByUser = async (userId) => {
-  const query = `
-        select closure.trade_id as tradeId, SUM(closure.quantity) as quantity, 
-        SUM(fees+tax) as totalExitTaxs,
-        SUM(price*quantity) as totalExitPrice
-        FROM closure
-        JOIN trade ON trade.id = closure.trade_id
-        JOIN portfolio ON portfolio.id = trade.portfolio_id
-        WHERE portfolio.user_id = ?
-        GROUP By closure.trade_id
-    `;
-  return await Query.doByValue(query, userId);
-};
+
 
 /**
  * @param {*} idTrade
@@ -402,26 +374,33 @@ function feedDashboard(portfolioDash, balanceActives, closedTrades) {
   portfolioDash.currentPv = +balanceActives.currentPv.toFixed(2);
   portfolioDash.activeK = +balanceActives.activeK.toFixed(2);
   portfolioDash.currentPvPc =
-    balanceActives.activeK !==0 ? +
-    ((balanceActives.currentPv / balanceActives.activeK) * 100).toFixed(2):0;
+    balanceActives.activeK !== 0
+      ? +((balanceActives.currentPv / balanceActives.activeK) * 100).toFixed(2)
+      : 0;
 
   portfolioDash.potential = +balanceActives.potential.toFixed(2);
-  portfolioDash.potentialPc = balanceActives.activeK !==0 ? +(
-    (balanceActives.potential / balanceActives.activeK) *
-    100
-  ).toFixed(2):0;
+  portfolioDash.potentialPc =
+    balanceActives.activeK !== 0
+      ? +((balanceActives.potential / balanceActives.activeK) * 100).toFixed(2)
+      : 0;
 
   portfolioDash.perfIfStopeed = +balanceActives.perfIfStopeed.toFixed(2);
-  portfolioDash.perfIfStopeedPc = balanceActives.activeK !==0 ? +(
-    (balanceActives.perfIfStopeed / balanceActives.activeK) *
-    100
-  ).toFixed(2):0;
+  portfolioDash.perfIfStopeedPc =
+    balanceActives.activeK !== 0
+      ? +(
+          (balanceActives.perfIfStopeed / balanceActives.activeK) *
+          100
+        ).toFixed(2)
+      : 0;
 
   portfolioDash.dailyVariation = +balanceActives.dailyVariation.toFixed(2);
-  portfolioDash.dailyVariationPc = balanceActives.activeK !==0 ? +(
-    (balanceActives.dailyVariation / balanceActives.activeK) *
-    100
-  ).toFixed(2):0;
+  portfolioDash.dailyVariationPc =
+    balanceActives.activeK !== 0
+      ? +(
+          (balanceActives.dailyVariation / balanceActives.activeK) *
+          100
+        ).toFixed(2)
+      : 0;
 
   portfolioDash.assets = +balanceActives.assets;
 
@@ -446,11 +425,14 @@ function feedDashboard(portfolioDash, balanceActives, closedTrades) {
     +portfolioDash.totalBalance - portfolioDash.initCredit
   ).toFixed(2);
 
-  portfolioDash.totalPerfPc = portfolioDash.initCredit !==0 ? +(
-    ((+portfolioDash.totalBalance - portfolioDash.initCredit) /
-      +portfolioDash.initCredit) *
-    100
-  ).toFixed(2) :0 ;
+  portfolioDash.totalPerfPc =
+    portfolioDash.initCredit !== 0
+      ? +(
+          ((+portfolioDash.totalBalance - portfolioDash.initCredit) /
+            +portfolioDash.initCredit) *
+          100
+        ).toFixed(2)
+      : 0;
 
   return portfolioDash;
 }
@@ -520,68 +502,18 @@ export const getOnePortfolioDashboard = async (req, res) => {
   }
 };
 
-/**
- * DashBoard Global ***********  bilan de tout *************
- * route portfolio/dashboard/global
- */
-// export const getGlobalDashboard = async (req, res) => {
-//   try {
-//     const portfolioDash = {
-//       currentPv: 0,
-//       currentPvPc: 0,
-//       potential: 0,
-//       potentialPc: 0,
-//       perfIfStopeed: 0,
-//       perfIfStopeedPc: 0,
-//       dailyVariation: 0,
-//       dailyVariationPc: 0,
-//       initCredit: 0,
-//       assets: 0,
-//       cash: 0,
-//       totalBalance: 0,
-//       totalPerf: 0,
-//       totalPerfPc: 0,
-//     };
 
-//     // initial credit
-//     portfolioDash.initCredit = +(await initialGlobal());
-
-//     // on recupère tous les trades ouverts et fermés
-//     const allOpensTrades = await openedGlobal();
-//     const allClosedTrades = await closedGlobal();
-
-//     // on va recupérer les détails des trades triés par encours et fermés
-//     const { activesDetails, closedTrades } = await getDetails(
-//       allOpensTrades,
-//       allClosedTrades
-//     );
-
-//     // on va chercher la synthèse des trades actifs
-//     const balanceActives = balanceOfActivestrades(activesDetails);
-
-//     // on traite les infos pour faire le dashboard
-//     const dashboard = await feedDashboard(
-//       portfolioDash,
-//       balanceActives,
-//       closedTrades
-//     );
-
-//     res.status(200).json(dashboard);
-//   } catch (error) {
-//     res.json({ msg: error });
-//   }
-// };
 
 /***********************************************************
  *  {Dashbors Globall d'un user}
  *
  */
+
 export const getGlobalDashboardOfOneUser = async (req, res) => {
   // currency de l'application
   const appCurrency = +process.env.APP_CURRENCY_ID;
 
   try {
-
     const portfolioDash = {
       userId: req.params.userId,
       currentPv: 0,
@@ -598,51 +530,66 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
       totalBalance: 0,
       totalPerf: 0,
       totalPerfPc: 0,
+      activeK: 0,
     };
-
     // on recupère la liste des portfolios de l'user
     const portfolios = await portfoliosByUser(portfolioDash.userId);
 
-    // pour chaque portfolio on va chercher le dashboard
-    portfolios.map (async portfolio => {
+    // pour chaque portfolio on va chercher le dashboard et alimenter le dashboard global
+
+    for await (const portfolio of portfolios) {
       const dash = await portfolioDashboard(portfolio.id);
-      console.log (dash)
-    })
+      //console.log(dash);
+       portfolioDash.currentPv = +(portfolioDash.currentPv + dash.currentPv).toFixed(2);
+      portfolioDash.potential = +(portfolioDash.potential + dash.potential).toFixed(2);
+      portfolioDash.perfIfStopeed =
+        +(portfolioDash.perfIfStopeed + dash.perfIfStopeed).toFixed(2);
+      portfolioDash.dailyVariation =
+        +(portfolioDash.dailyVariation + dash.dailyVariation).toFixed(2);
+      portfolioDash.initCredit = +(portfolioDash.initCredit + dash.initCredit).toFixed(2);
+      portfolioDash.assets = +(portfolioDash.assets + dash.assets).toFixed(2);
+      portfolioDash.cash = +(portfolioDash.cash + dash.cash).toFixed(2);
+      portfolioDash.totalBalance =
+        +(portfolioDash.totalBalance + dash.totalBalance).toFixed(2);
+      portfolioDash.totalPerf = +(portfolioDash.totalPerf + dash.totalPerf).toFixed(2);
+      portfolioDash.activeK = +(portfolioDash.activeK + dash.activeK).toFixed(2);
+      //console.log(portfolioDash);
+    }
 
- 
+    // calcul de la vartiation jour
+    portfolioDash.dailyVariationPc = (
+      (portfolioDash.dailyVariation /
+        (portfolioDash.currentPv - portfolioDash.dailyVariation)) *
+      100
+    ).toFixed(2);
 
+    // calcul de % pv latente / k engagé
+    portfolioDash.currentPvPc = (
+      (portfolioDash.currentPv / portfolioDash.activeK) *
+      100
+    ).toFixed(2);
 
+    // calcul du potentiel des potisions ouvertes
+    portfolioDash.potentialPc = (
+      (portfolioDash.potential / portfolioDash.activeK) *
+      100
+    ).toFixed(2);
 
+    // calcul du risk potentiel
+    portfolioDash.perfIfStopeedPc = (
+      (portfolioDash.perfIfStopeed / portfolioDash.activeK) *
+      100
+    ).toFixed(2);
 
+    // calcul perf totale
+    portfolioDash.totalPerfPc = (
+      (portfolioDash.totalPerf / portfolioDash.initCredit) *
+      100
+    ).toFixed(2);
 
-    // initial credit
-    portfolioDash.initCredit = +(await initialByUser(portfolioDash.userId));
+    
 
-    // // on recupère tous les trades ouverts et fermés pour un user
-    const allOpensTradesByUser = await openedByUser(portfolioDash.userId);
-    const allClosedTradesByUser = await closedByUser(portfolioDash.userId);
-
-    // on va recupérer les détails des trades triés par encours et fermés
-    const { activesDetails, closedTrades } = await getDetails(
-      allOpensTradesByUser,
-      allClosedTradesByUser
-    );
-
-    //console.log(activesDetails, closedTrades);
-
-    // on va chercher la synthèse des trades actifs
-    const balanceActives = balanceOfActivestrades(activesDetails);
-
-    //console.log (balanceActives);
-
-    // on traite les infos pour faire le dashboard
-    const dashboard = await feedDashboard(
-      portfolioDash,
-      balanceActives,
-      closedTrades
-    );
-
-    res.status(200).json(dashboard);
+    res.status(200).json(portfolioDash);
   } catch (error) {
     res.json({ msg: error });
   }

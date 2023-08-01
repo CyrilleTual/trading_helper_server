@@ -406,11 +406,11 @@ export const checkIfActiveTrade = async (req, res) => {
       const [enter] = await Query.doByValue(queryEnter, trade.id);
       const [closure] = await Query.doByValue(queryClosure, trade.id);
       const stockLeft = +enter.nbEnter - closure.nbClosure;
-      console.log(trade.id, stockLeft);
+      //console.log(trade.id, stockLeft);
       if (stockLeft > 0) {
         activeTrade.push(trade.id);
       }
-      console.log(activeTrade);
+      //console.log(activeTrade);
     }
     res.status(200).json(activeTrade);
   } catch (error) {

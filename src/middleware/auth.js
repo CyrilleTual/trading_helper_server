@@ -33,7 +33,7 @@ export const auth = async (req, res, next) => {
 
         const ok = await checkRole(decoded.id, decoded.role);
 
-        console.log ("ok",ok)
+       // console.log ("ok",ok)
 
         if (ok){
             req.params.token = decoded; // on sauve le token dans req.params
