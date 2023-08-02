@@ -7,8 +7,7 @@ async function checkRole(id, role) {
                     JOIN role ON role.id = user.role_id
                     WHERE user.id = ?`;
   const [user] = await Query.doByValue(query1, id);
-   return(role === user.role ? true : false) ;
-
+  return role === user.role ? true : false;
 }
 
 //**********************************************************
@@ -30,21 +29,14 @@ export const auth = async (req, res, next) => {
         res.status(401).json({ status: 401, msg: "token invalid" });
         return;
       } else {
-
         const ok = await checkRole(decoded.id, decoded.role);
-
-       // console.log ("ok",ok)
-
-        if (ok){
-            req.params.token = decoded; // on sauve le token dans req.params
-        console.log();
-        next(); 
-        }else{
-            res.status(401).json({ status: 401, msg: "forbiden" });
-            return;
+        if (ok) {
+          req.params.token = decoded; // on sauve le token dans req.params
+          next();
+        } else {
+          res.status(401).json({ status: 401, msg: "forbiden" });
+          return;
         }
-        
-       
       }
     });
   }

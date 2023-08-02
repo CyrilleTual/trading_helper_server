@@ -1,4 +1,5 @@
 import Query from "../model/query.js";
+import { appCurrencies, appGetForex } from "../controller/currency.js";
 
 /**
  * Création d'un nouveau portefeuille
@@ -510,12 +511,27 @@ export const getOnePortfolioDashboard = async (req, res) => {
  */
 
 export const getGlobalDashboardOfOneUser = async (req, res) => {
-  // currency de l'application
-  const appCurrency = +process.env.APP_CURRENCY_ID;
+  // on recupère les differentes currencies de l'app
+  const currenciesArray = await appCurrencies();
+  // on récupère l'abbr de l'appCurrency (devise de base de l'app.)
+  const appCurrencyAbbr = currenciesArray.find(
+    (el) => el.id === +process.env.APP_CURRENCY_ID
+  ).abbr;
+  // on récupère le symbol de l'appCurrency (devise de base de l'app.)
+  const appCurrencySymbol = currenciesArray.find(
+    (el) => el.id === +process.env.APP_CURRENCY_ID
+  ).symbol;
+  // on récupère les infos sur les devises et les taux de conversions
+  const appForex = await appGetForex();
+
+
 
   try {
     const portfolioDash = {
-      userId: req.params.userId,
+      userId: +req.params.userId,
+      currencyId: +process.env.APP_CURRENCY_ID,
+      currencyAbbr: appCurrencyAbbr,
+      currencySymbol: appCurrencySymbol,
       currentPv: 0,
       currentPvPc: 0,
       potential: 0,
@@ -537,57 +553,114 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
 
     // pour chaque portfolio on va chercher le dashboard et alimenter le dashboard global
 
+
+
     for await (const portfolio of portfolios) {
       const dash = await portfolioDashboard(portfolio.id);
       //console.log(dash);
-       portfolioDash.currentPv = +(portfolioDash.currentPv + dash.currentPv).toFixed(2);
-      portfolioDash.potential = +(portfolioDash.potential + dash.potential).toFixed(2);
-      portfolioDash.perfIfStopeed =
-        +(portfolioDash.perfIfStopeed + dash.perfIfStopeed).toFixed(2);
-      portfolioDash.dailyVariation =
-        +(portfolioDash.dailyVariation + dash.dailyVariation).toFixed(2);
-      portfolioDash.initCredit = +(portfolioDash.initCredit + dash.initCredit).toFixed(2);
-      portfolioDash.assets = +(portfolioDash.assets + dash.assets).toFixed(2);
-      portfolioDash.cash = +(portfolioDash.cash + dash.cash).toFixed(2);
-      portfolioDash.totalBalance =
-        +(portfolioDash.totalBalance + dash.totalBalance).toFixed(2);
-      portfolioDash.totalPerf = +(portfolioDash.totalPerf + dash.totalPerf).toFixed(2);
-      portfolioDash.activeK = +(portfolioDash.activeK + dash.activeK).toFixed(2);
+
+      // on récupère l'abbr du dashboardCurrency
+      const dashboardCurrencyAbbr = currenciesArray.find(
+        (el) => el.id === +dash.currencyId
+      ).abbr;
+
+
+
+      // a partir de la currency de l'app et de celle du portfilio on va chercher le taux de change
+      const xRate = appForex.find(
+        (el) =>
+          el.from_currency === appCurrencyAbbr &&
+          el.to_currency === dashboardCurrencyAbbr
+      ).rate;
+
+
+
+      // console.log(
+      //   "portif n°:",
+      //   dash.id,
+      //   "devise portif:",
+      //   dashboardCurrencyAbbr,
+      //   "taux de conversion",
+      //   xRate
+      // );
+
+
+
+      portfolioDash.currentPv = +(
+        portfolioDash.currentPv +
+        (1 / xRate) * dash.currentPv
+      ).toFixed(2);
+      portfolioDash.potential = +(
+        portfolioDash.potential +
+        (1 / xRate) * dash.potential
+      ).toFixed(2);
+      portfolioDash.perfIfStopeed = +(
+        portfolioDash.perfIfStopeed +
+        (1 / xRate) * dash.perfIfStopeed
+      ).toFixed(2);
+      portfolioDash.dailyVariation = +(
+        portfolioDash.dailyVariation +
+        (1 / xRate) * dash.dailyVariation
+      ).toFixed(2);
+      portfolioDash.initCredit = +(
+        portfolioDash.initCredit +
+        (1 / xRate) * dash.initCredit
+      ).toFixed(2);
+      portfolioDash.assets = +(
+        portfolioDash.assets +
+        (1 / xRate) * dash.assets
+      ).toFixed(2);
+      portfolioDash.cash = +(
+        portfolioDash.cash +
+        (1 / xRate) * dash.cash
+      ).toFixed(2);
+      portfolioDash.totalBalance = +(
+        portfolioDash.totalBalance +
+        (1 / xRate) * dash.totalBalance
+      ).toFixed(2);
+      portfolioDash.totalPerf = +(
+        portfolioDash.totalPerf +
+        (1 / xRate) * dash.totalPerf
+      ).toFixed(2);
+      portfolioDash.activeK = +(
+        portfolioDash.activeK +
+        (1 / xRate) * dash.activeK
+      ).toFixed(2);
       //console.log(portfolioDash);
     }
 
+
+
     // calcul de la vartiation jour
-    portfolioDash.dailyVariationPc = (
+    portfolioDash.dailyVariationPc = +(
       (portfolioDash.dailyVariation /
         (portfolioDash.currentPv - portfolioDash.dailyVariation)) *
       100
     ).toFixed(2);
 
     // calcul de % pv latente / k engagé
-    portfolioDash.currentPvPc = (
+    portfolioDash.currentPvPc = +(
       (portfolioDash.currentPv / portfolioDash.activeK) *
       100
     ).toFixed(2);
 
     // calcul du potentiel des potisions ouvertes
-    portfolioDash.potentialPc = (
+    portfolioDash.potentialPc = +(
       (portfolioDash.potential / portfolioDash.activeK) *
       100
     ).toFixed(2);
 
     // calcul du risk potentiel
-    portfolioDash.perfIfStopeedPc = (
+    portfolioDash.perfIfStopeedPc = +(
       (portfolioDash.perfIfStopeed / portfolioDash.activeK) *
       100
     ).toFixed(2);
 
     // calcul perf totale
-    portfolioDash.totalPerfPc = (
+    portfolioDash.totalPerfPc = +(
       (portfolioDash.totalPerf / portfolioDash.initCredit) *
       100
     ).toFixed(2);
-
-    
 
     res.status(200).json(portfolioDash);
   } catch (error) {

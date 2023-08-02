@@ -1,17 +1,12 @@
 import Query from "../model/query.js";
 
 
-
-
-
 /**
  * Selection de tous les currencies
  */
 
 export async function appCurrencies (){
-   const query = `
-        SELECT * FROM currency
-    `;
+   const query = ` SELECT * FROM currency `;
    return await Query.find(query);
 } 
 
@@ -26,3 +21,8 @@ export const getCurrencies = async (req, res) => {
     res.json({ msg: error });
   }
 };
+
+export async function  appGetForex (){
+  const query = ` SELECT * FROM forex `;
+  return await Query.find(query);
+}

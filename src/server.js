@@ -9,7 +9,7 @@ import fs from 'fs';
 
 import { LOCAL_PORT } from "./config/const.js"; //  variables d'environnement
 import { updQuote } from "./utils/cronUpdQuote.js";
-import { updCurrencies } from "./utils/forexUpd.js";
+
 
 const PORT = process.env.PORT || LOCAL_PORT;
 const app = express();
@@ -38,4 +38,4 @@ app
 
 console.log("starting cron job ");
 updQuote(); // lance le CRON pour update activeStock
-updCurrencies();
+ 
