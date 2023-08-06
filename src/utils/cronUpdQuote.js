@@ -51,7 +51,7 @@ export function updQuote() {
       null,
       true,
       "Europe/Paris",
-      null
+      null,
       //true // premier execution immédiate
     )
   );

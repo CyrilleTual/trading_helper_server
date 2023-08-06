@@ -96,7 +96,7 @@ const initialGlobal = async (id) => {
 //*
 // const initialByUser = async (id) => {
 //   const query = `
-//     SELECT SUM(deposit.amount) as totalDeposit FROM deposit 
+//     SELECT SUM(deposit.amount) as totalDeposit FROM deposit
 //     JOIN portfolio ON deposit.porfolio_id = portfolio.id
 //     WHERE  portfolio.user_id = ?
 //     `;
@@ -135,8 +135,6 @@ async function openedGlobal() {
   return opened;
 }
 
-
-
 /**
  * selection de tous les trades long fermés pour un portfolios
  * retour de l'id du trade, de la quantité exit et du prix de vente total
@@ -170,8 +168,6 @@ const closedGlobal = async () => {
   return await Query.find(query);
 };
 
-
-
 /**
  * @param {*} idTrade
  * @returns Détails du trade actifs
@@ -201,7 +197,7 @@ const detailsCurrentTrade = async (idTrade, prutmp) => {
 
 /***********************************************************
  * retourne les trades à partir des tableaux
- * des entrées et de celui des sorties sur les long
+ * des entrées et de celui des sorties
  */
 async function getDetails(opened, closed) {
   let activesTrades = [];
@@ -223,26 +219,26 @@ async function getDetails(opened, closed) {
           activesTrades.push({
             tradeId: element1.tradeId,
             position: element1.position,
-            bougth: element1.quantity,
-            enterK: element1.totalEnterK,
-            enterTaxs: element1.totalEnterTaxs,
-            remains: remains,
-            sold: element2.quantity,
-            exitK: element2.totalExitPrice,
-            exitTaxs: element2.totalExitTaxs,
+            bougth: +element1.quantity,
+            enterK: +element1.totalEnterK,
+            enterTaxs: +element1.totalEnterTaxs,
+            remains: +remains,
+            sold: +element2.quantity,
+            exitK: +element2.totalExitPrice,
+            exitTaxs: +element2.totalExitTaxs,
           });
         } else {
           // le trade n'est plus actif
           closedTrades.push({
             tradeId: element1.tradeId,
             position: element1.position,
-            bougth: element1.quantity,
-            enterK: element1.totalEnterK,
-            enterTaxs: element1.totalEnterTaxs,
-            remains: remains,
-            sold: element2.quantity,
-            exitK: element2.totalExitPrice,
-            exitTaxs: element2.totalExitTaxs,
+            bougth: +element1.quantity,
+            enterK: +element1.totalEnterK,
+            enterTaxs: +element1.totalEnterTaxs,
+            remains: +remains,
+            sold: +element2.quantity,
+            exitK: +element2.totalExitPrice,
+            exitTaxs: +element2.totalExitTaxs,
           });
         }
       }
@@ -277,7 +273,7 @@ async function getDetails(opened, closed) {
     activesDetails.push({ ...element, ...details });
   }
   //console.log("actifs : ", activesDetails);
-  // console.log("totalement cloturés  : ", closedTrades);
+  //  console.log("totalement cloturés  : ", closedTrades);
   return { activesDetails, closedTrades };
 }
 
@@ -353,15 +349,14 @@ function balanceOfActivestrades(activesDetails) {
           (+element.enterK / +element.bougth -
             +element.lastQuote +
             +element.enterK / +element.bougth);
-    balanceActives.assets += assets;
+    balanceActives.assets += +assets;
 
-    // mouvements de cash sur le porfolio
-    const cash =
+    // mouvements de cash sur le porfolio (ce qu'a rapporté les vendus)
+    balanceActives.cash +=
       -element.enterK - +element.enterTaxs + +element.exitK - +element.exitTaxs;
-    balanceActives.cash += cash;
   }
 
-  balanceActives.assets = balanceActives.assets.toFixed(2);
+  balanceActives.assets = +balanceActives.assets.toFixed(2);
 
   return balanceActives;
 }
@@ -409,7 +404,8 @@ function feedDashboard(portfolioDash, balanceActives, closedTrades) {
   let closedTradesCash = 0;
 
   for (const element of closedTrades) {
-    closedTradesCash += +element.bougth - +element.sold;
+    closedTradesCash +=
+      -element.enterK - +element.enterTaxs + +element.exitK - +element.exitTaxs;
   }
 
   portfolioDash.cash = +(
@@ -496,14 +492,12 @@ async function portfolioDashboard(portfolioId) {
  */
 export const getOnePortfolioDashboard = async (req, res) => {
   try {
-    const dashboard = await portfolioDashboard(req.params.idPortfolio);
+    const dashboard = await portfolioDashboard(+req.params.idPortfolio);
     res.status(200).json(dashboard);
   } catch (error) {
     res.json({ msg: error });
   }
 };
-
-
 
 /***********************************************************
  *  {Dashbors Globall d'un user}
@@ -523,8 +517,6 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
   ).symbol;
   // on récupère les infos sur les devises et les taux de conversions
   const appForex = await appGetForex();
-
-
 
   try {
     const portfolioDash = {
@@ -553,8 +545,6 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
 
     // pour chaque portfolio on va chercher le dashboard et alimenter le dashboard global
 
-
-
     for await (const portfolio of portfolios) {
       const dash = await portfolioDashboard(portfolio.id);
       //console.log(dash);
@@ -564,16 +554,12 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
         (el) => el.id === +dash.currencyId
       ).abbr;
 
-
-
       // a partir de la currency de l'app et de celle du portfilio on va chercher le taux de change
       const xRate = appForex.find(
         (el) =>
           el.from_currency === appCurrencyAbbr &&
           el.to_currency === dashboardCurrencyAbbr
       ).rate;
-
-
 
       // console.log(
       //   "portif n°:",
@@ -583,8 +569,6 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
       //   "taux de conversion",
       //   xRate
       // );
-
-
 
       portfolioDash.currentPv = +(
         portfolioDash.currentPv +
@@ -628,8 +612,6 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
       ).toFixed(2);
       //console.log(portfolioDash);
     }
-
-
 
     // calcul de la vartiation jour
     portfolioDash.dailyVariationPc = +(

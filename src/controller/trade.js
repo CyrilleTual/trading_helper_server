@@ -157,15 +157,17 @@ export const newEntry = async (req, res) => {
       currency_id,
       lastQuote,
       beforeQuote,
+      position,
     } = req.body;
 
     // création du trade puis de l'entrée
     let dateToSet = new Date();
 
-    const query = `INSERT INTO trade ( stock_id, currentTarget, currentStop, comment, firstEnter, strategy_id ,  portfolio_id ,  currency_id ) 
-        VALUES (?,?,?,?,?,?,?,?)`;
+    const query = `INSERT INTO trade ( stock_id, position, currentTarget, currentStop, comment, firstEnter, strategy_id ,  portfolio_id ,  currency_id ) 
+        VALUES (?,?,?,?,?,?,?,?,?)`;
     const [result] = await Query.doByValues(query, {
       stock_id,
+      position,
       target,
       stop,
       comment,
