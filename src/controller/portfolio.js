@@ -1,5 +1,6 @@
 import Query from "../model/query.js";
 import { appCurrencies, appGetForex } from "../controller/currency.js";
+import { feedPortfolio } from "./deposit.js";
 
 /**
  * Création d'un nouveau portefeuille
@@ -17,15 +18,25 @@ export const newPortfolio = async (req, res) => {
       currency_id,
       status,
     });
-
     // ensuite faire un versement
     const idPort = await result.insertId;
-    const query2 = `INSERT INTO deposit(porfolio_id, amount) VALUES (?,?)`;
-    await Query.doByValues(query2, {
-      idPort,
-      deposit,
-    });
+    feedPortfolio(idPort, deposit);
     res.status(200).json({ msg: "portefeuille créé" });
+  } catch (error) {
+    res.json({ msg: error });
+  }
+};
+
+/**
+ *  faire un depot/ retrait sur un portefeuille
+ */
+export const deposit = async (req, res) => {
+  try {
+    const { portfolioId, action, amount } = req.body;
+
+    const ToInset = action === 2 ? -amount : amount;
+    feedPortfolio(portfolioId, ToInset);
+    res.status(200).json({ msg: "versement OK" });
   } catch (error) {
     res.json({ msg: error });
   }
@@ -36,13 +47,28 @@ export const newPortfolio = async (req, res) => {
 //*
 async function portfoliosByUser(userId) {
   const query = `SELECT portfolio.id, portfolio.title, portfolio.comment, 
-      currency.id as currencyId, currency.title as currency, currency.symbol as symbol 
+      currency.id as currencyId, currency.title as currency, currency.symbol as symbol, currency.abbr as abbr
       FROM portfolio
       JOIN currency on portfolio.currency_id = currency.id
       WHERE user_id = ?`;
   const portfolios = await Query.doByValue(query, userId);
   return portfolios;
 }
+
+//**********************************************************
+//* rendre inactif un portefeuille
+//*
+export const idlePortfolio = async (req, res) => {
+  const { idPortfolio } = req.params;
+  try {
+    const query = ` UPDATE portfolio SET status='idle' WHERE id =? `;
+    await Query.doByValue(query, idPortfolio);
+    res.status(200).json({ msg: "idle OK" });
+
+  } catch (error) {
+    res.json({ msg: error });
+  }
+};
 
 /**
  * retourne les portfolios,  route /portfolio/user/:userId
