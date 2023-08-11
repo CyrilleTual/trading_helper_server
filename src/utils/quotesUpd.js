@@ -1,8 +1,7 @@
 import { parentPort } from "worker_threads";
-// import { scrapeAbc } from "./scraper.js";
 import Query from "../model/query.js";
 import puppeteer from "puppeteer";
-import { extractDatasAbc } from "./scraper.js";
+import { extractDatasAbc } from "./scrapeFromAbc.js";
 
 
 (async () => {

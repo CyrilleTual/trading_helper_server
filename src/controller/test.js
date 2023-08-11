@@ -1,5 +1,5 @@
 import Query from "../model/query.js";
-import { scrapeAbc } from "../utils/scraper.js";
+import {  scrapeLastInfos } from "../utils/scraper.js";
 
 // export  const  testview = (req, res) => {
 //     res.send(" ho ok my friend that's it");
@@ -35,7 +35,7 @@ export const displayOneStock = async (req, res) => {
     `;
     const [result] = await Query.doByValues(query, { isin, place });
 
-    const {before,last} = await scrapeAbc(result[0].ticker, result[0].place);
+    const {before,last} = await  scrapeLastInfos(result[0].ticker, result[0].place);
 
     result[0].last = last;
     result[0].before = before;

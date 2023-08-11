@@ -15,7 +15,7 @@ export function startCronJobs() {
     cronJobs.forEach((cronJob) => cronJob.stop());
   });
 
-  // Première tâche cron : mise à jour des stocks actifs dans un worker
+  // Première tâche cron : lancement d'un worker pour la mise à jour des stocks actifs  
   cronJobs.push(
     cron.job(
       "*/15 6-23 * * 1-5", // toutes le 15 min de 6->23h du lu->Ve
@@ -26,7 +26,7 @@ export function startCronJobs() {
       true,
       "Europe/Paris",
       null,
-      //true // premier execution immédiate
+      // true // premier execution immédiate
     )
   );
 

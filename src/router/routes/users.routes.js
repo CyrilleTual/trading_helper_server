@@ -1,7 +1,8 @@
 import { Router } from "express";
-
 import { signup, signin } from "../../controller/user.js";
-//import { auth } from "../../middlewares/auth.js";
+ 
+// Attention les routes users ne sont pas protégées par verification du token 
+// en amont
 
 const router = Router();
 

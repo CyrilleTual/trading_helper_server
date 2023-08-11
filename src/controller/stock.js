@@ -1,11 +1,12 @@
 import Query from "../model/query.js";
-import { scrapeAbc } from "../utils/scraper.js";
+import {  scrapeLastInfos } from "../utils/scraper.js";
 
 
 
-
-/***********************************************************
- * recherche d'un stock par son nom
+/**
+ * Recherche d'un stock par son nom.
+ * @param {*} req - L'objet de la requête HTTP.
+ * @param {*} res - L'objet de la réponse HTTP.
  */
 export const searchStock = async (req, res) => {
   const { title } = req.params;
@@ -14,63 +15,65 @@ export const searchStock = async (req, res) => {
   const searchTerm3 = `%${title}%`;
 
   try {
-    // recupération des champs du post
+    // recupération des champs du stock
     const query = `
         SELECT id, isin, title, ticker, place 
         FROM stock 
         WHERE  title LIKE ? OR ticker LIKE ? OR isin LIKE ? 
         LIMIT 25
     `;
-    const result = await Query.doByValues(query, { searchTerm, searchTerm2, searchTerm3 });
+    const result = await Query.doByValues(query, {
+      searchTerm,
+      searchTerm2,
+      searchTerm3,
+    });
+    // attention la forme { searchTerm, searchTerm, searchTerm } ne fonctionne pas !!
 
-    res.status(200).json( result[0] );
+    res.status(200).json(result[0]);
+
   } catch (error) {
     res.json({ msg: error });
   }
 };
 
-/***********************************************************
- * selection des derniers cours d'un stock par son isin et sa place de quotation
+
+/**
+ * Obtient les dernières informations d'un stock par son ISIN et sa place de cotation.
+ * @param {*} req - L'objet de la requête HTTP.
+ * @param {*} res - L'objet de la réponse HTTP.
  */
-export const lastQuote = async (req, res) => {
+export const lastInfos = async (req, res) => {
+
   const { isin, place } = req.params;
-   
+
   try {
-    // recupération des champs du post
+
+    // recupération des champs du stock
     const query = `
         SELECT *  
         FROM  stock
         WHERE stock.isin = ? AND stock.place = ? 
     `;
+    // Exécution de la requête pour obtenir les informations du stock
     const [result] = await Query.doByValues(query, { isin, place });
 
-    const {before,last, currency} = await scrapeAbc(result[0].ticker, result[0].place);
+    // Scraping des informations récentes depuis une source externe (par exemple, le site ABC bourse)
+    const { before, last, currency } = await  scrapeLastInfos(
+      result[0].ticker,
+      result[0].place
+    );
 
+    // Mise à jour des informations du stock avec les données récupérées
     result[0].last = last;
     result[0].before = before;
     result[0].currency = currency;
 
-
+    // Envoi de la réponse avec les informations du stock mises à jour
     res.status(200).json(result[0]);
   } catch (error) {
+    // En cas d'erreur, renvoi d'un message d'erreur dans la réponse JSON
     res.json({ msg: error });
   }
 }
 
-/***********************************************************
- * recherche d'un stock par son id dans le tableau des activesstock
- */
-// export const checkActive = async (req, res) => {
-//   const { id } = req.params;
-//   try {
-//     const query = `
-//       SELECT *  FROM activeStock 
-//       WHERE stock_id = ?
-//     `;
-//     const result = await Query.doByValue(query, id);
-//     res.status(200).json( result );
-//   } catch (error) {
-//     res.json({ msg: error });
-//   }
-// };
-
+ 
