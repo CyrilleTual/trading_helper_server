@@ -1,34 +1,30 @@
-import express from "express";
-import "dotenv/config";
-import cors from "cors";
-import router from "./router/index.routes.js";
-import morgan from "morgan";
-import  rfs from "rotating-file-stream"
-import fs from 'fs'; 
-
+// Importation des modules 
+import express from "express"; // framework Express
+import "dotenv/config"; // Permet le chargement des variables d'environnement depuis le fichier .env
+import cors from "cors"; // Middleware de partage de ressources entre domaines (CORS)
+import router from "./router/index.routes.js"; //module router
+import morgan from "morgan"; // Middleware de journalisation des requêtes HTTP
+import rfs from "rotating-file-stream"; // Flux de fichiers rotatifs pour les logs
 
 import { LOCAL_PORT } from "./config/const.js"; //  variables d'environnement
-import { updQuote } from "./utils/cronUpdQuote.js";
-
+import { startCronJobs } from "./utils/cronJobs.js"; // pour démarrer les tâches planifiées (cron jobs)
 
 const PORT = process.env.PORT || LOCAL_PORT;
 const app = express();
 
+// Création fichiers pour journaliser les accès, rotation quotidienne
+const accessLogStream = rfs.createStream("access.log", {
+  interval: "1d", // rotate daily
+  path: "./src/log",
+});
 
-// create a rotating write stream
-const accessLogStream = rfs.createStream('access.log', {
-  interval: '1d', // rotate daily
-  path:('./src/log')
-})
-
+// Configuration de l'application Express
 app
   .use(cors({ origin: "*" }))
-  .use(express.static("public"))
   .use(express.json()) // basé sur body-parse rôle pour le json
   .use(express.urlencoded({ extended: true })) // aussi basé sur body parser
-  .use(morgan("combined", { stream: accessLogStream })) // log des requêtes vers le serveur
+  .use(morgan("combined", { stream: accessLogStream })) // log des requêtes
   .use(router)
-
   .listen(PORT, (err) => {
     err
       ? console.log(err)
@@ -36,6 +32,6 @@ app
   });
 //
 
-console.log("starting cron job ");
-updQuote(); // lance le CRON pour update activeStock
- 
+// Démarrage des tâches cron pour mettre à jour cotations et  taux de change
+startCronJobs();
+        

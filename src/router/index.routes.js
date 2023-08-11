@@ -9,19 +9,21 @@ import currencies_routes from "./routes/currency.routes.js"
 import { auth } from "../middleware/auth.js";
 
 const router = Router();
+const apiUrl = process.env.API_BASE_URL;
 
-router.use("/test", test_routes);
-router.use("/user", users_routes);
-router.use("/trade", auth, trades_routes);
-router.use("/portfolio", auth, portfolio_routes);
-router.use("/strategies", auth, strategies_routes);
-router.use("/stock", auth, stock_route);
-router.use("/currencies", auth, currencies_routes)
+// auth -> middleWare de vérificartion du token : routes sécurisées
 
-router.get("*", (req, res) => {
-  res.send("là, c'est un 404");
+router.use(`${apiUrl}/test`, auth, test_routes);
+router.use(`${apiUrl}/users`, users_routes);
+router.use(`${apiUrl}/trades`, auth, trades_routes);
+router.use(`${apiUrl}/portfolios`, auth, portfolio_routes);
+router.use(`${apiUrl}/strategies`, auth, strategies_routes);
+router.use(`${apiUrl}/stocks`, auth, stock_route);
+router.use(`${apiUrl}/currencies`, auth, currencies_routes);
+
+router.get(`*`, (req, res) => {
+  res.send(`là, c'est un 404`);
 });
 
-///export default createRouter(pool) {}
 
 export default router;
