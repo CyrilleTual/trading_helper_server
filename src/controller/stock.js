@@ -1,8 +1,6 @@
 import Query from "../model/query.js";
 import {  scrapeLastInfos } from "../utils/scraper.js";
 
-
-
 /**
  * Recherche d'un stock par son nom.
  * @param {*} req - L'objet de la requête HTTP.

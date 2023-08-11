@@ -1,6 +1,5 @@
 import Query from "../model/query.js";
 
-
 /**
  * Récupère toutes les devises de la base de données.
  * @returns {Promise<Array>} Une promesse résolvant un tableau d'objets de devises.

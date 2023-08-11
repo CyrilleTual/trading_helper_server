@@ -1,48 +1,78 @@
 import Query from "../model/query.js";
 
-/***********************************************************
- * retourne les trades actifs à partir des tableaux
- * des entrées et de celui des sorties
+
+
+
+ /**
+ * Retourne les trades actifs à partir du tableau des entrées et de celui des sorties.
+ * 
+ * @param {Array} opened - Tableau des trades ouverts.
+ * @param {Array} closed - Tableau des trades fermés.
+ * @returns {Array} Tableau des trades actifs.
  */
 function activesOnly(opened, closed) {
   let activesTrades = [];
-  for (const element1 of opened) {
-    let flag = false;
+
+  for (const entry of opened) {
+     
+    let closureExist = false;
     let remains;
-    for (const element2 of closed) {
-      if (element2.tradeId === element1.tradeId) {
-        flag = true;
-        remains = element1.opened - element2.closed;
+
+    for (const exit of closed) {
+      if (exit.tradeId === entry.tradeId) {
+        closureExist = true; // il existe une cloture pour le stock
+        remains = entry.opened - exit.closed;
       }
     }
-    if (flag === false) {
-      remains = +element1.opened;
+    if (closureExist === false) {
+      remains = +entry.opened; // Si pas de sortie 
     }
-    activesTrades.push({ idTrade: element1.tradeId, remains: remains });
+    activesTrades.push({ idTrade: entry.tradeId, remains: remains });
   }
   return activesTrades;
 }
 
-/* *********************************************************
- * Selection de tous le trades actifs  route: /trade/active (pour admin uniquement)
+
+/**
+ * Sélection de tous les trades actifs (accessible uniquement aux administrateurs).
+ * 
+ * - Appel de la fonction 'activesOnly' pour filtrer et obtenir les trades actifs avec les quantités restantes.
+ * - Renvoi de la liste des trades actifs en réponse.
+ * 
+ * @param {*} req - L'objet de la requête HTTP.
+ * @param {*} res - L'objet de la réponse HTTP.
  */
 export const getAll = async (req, res) => {
   try {
-    const queryOpened = `SELECT enter.trade_id AS tradeId, SUM(enter.quantity) AS opened
-        FROM enter
-        GROUP BY enter.trade_id`;
+    // Requête SQL pour obtenir la somme des quantités ouvertes pour chaque trade.
+    const queryOpened = `
+      SELECT enter.trade_id AS tradeId, SUM(enter.quantity) AS opened
+      FROM enter
+      GROUP BY enter.trade_id
+    `;
 
-    const queryClosed = `SELECT closure.trade_id AS tradeId, SUM(closure.quantity) AS closed
-        FROM closure
-        GROUP BY closure.trade_id`;
+    // Requête SQL pour obtenir la somme des quantités fermées pour chaque trade.
+    const queryClosed = `
+      SELECT closure.trade_id AS tradeId, SUM(closure.quantity) AS closed
+      FROM closure
+      GROUP BY closure.trade_id
+    `;
 
+    // Exécution des requêtes
     const opened = await Query.find(queryOpened);
     const closed = await Query.find(queryClosed);
+
+    // Filtrage des trades actifs en appelant la fonction 'activesOnly'
     let activesTrades = activesOnly(opened, closed);
 
+    // Renvoi de la liste des trades actifs en réponse
     res.status(200).json(activesTrades);
+
   } catch (error) {
-    res.json({ msg: error });
+    // En cas d'erreur, renvoi d'un message d'erreur dans la réponse JSON
+    res
+      .status(500)
+      .json({ msg: "Erreur lors de la récupération des trades actifs", error });
   }
 };
 
@@ -56,20 +86,20 @@ export const getByUser = async (req, res) => {
   try {
     // array des trades ouverts par le user
     const queryOpened = `SELECT enter.trade_id AS tradeId, SUM(enter.quantity) AS opened
-        FROM enter
-        JOIN trade ON enter.trade_id = trade.id
-        JOIN portfolio ON trade.portfolio_id = portfolio.id
-        JOIN user ON portfolio.user_id = user.id
-        WHERE user.id = ?
+      FROM enter
+      JOIN trade ON enter.trade_id = trade.id
+      JOIN portfolio ON trade.portfolio_id = portfolio.id
+      JOIN user ON portfolio.user_id = user.id
+      WHERE user.id = ?
         GROUP BY enter.trade_id`;
 
     // array des trades fermés par le user
     const queryClosed = `SELECT closure.trade_id AS tradeId, SUM(closure.quantity) AS closed
-        FROM closure
-        JOIN trade ON closure.trade_id = trade.id
-        JOIN portfolio ON trade.portfolio_id = portfolio.id
-        JOIN user ON portfolio.user_id = user.id
-        WHERE user.id = ?
+      FROM closure
+      JOIN trade ON closure.trade_id = trade.id
+      JOIN portfolio ON trade.portfolio_id = portfolio.id
+      JOIN user ON portfolio.user_id = user.id
+      WHERE user.id = ?
         GROUP BY closure.trade_id`;
 
     const opened = await Query.doByValue(queryOpened, [userId]);
@@ -77,22 +107,22 @@ export const getByUser = async (req, res) => {
 
     // on va en déduire le tableau des trades actifs
     let tradeList = activesOnly(opened, closed);
-
+    
     /// pour chaque trade on va chercher les détails
     for (const item of tradeList) {
       const query = `
-            SELECT DISTINCT stock.title, stock.id  AS stockId,  stock.isin AS isin, stock.place AS place, stock.ticker AS ticker, 
-            activeStock.lastQuote,
-            trade.firstEnter, currentTarget, currentStop, trade.comment,
-            portfolio.id  AS portfolioId 
-            FROM enter
-            JOIN trade ON enter.trade_id = trade.id 
-            JOIN stock ON trade.stock_id = stock.id 
-            JOIN activeStock ON activeStock.stock_id = stock.id
-            JOIN portfolio ON trade.portfolio_id = portfolio.id 
-            JOIN user ON portfolio.user_id  = user.id 
-            WHERE trade.id = ?
-        `;
+        SELECT DISTINCT stock.title, stock.id  AS stockId,  stock.isin AS isin, stock.place AS place, stock.ticker AS ticker, 
+        activeStock.lastQuote,
+        trade.firstEnter, currentTarget, currentStop, trade.comment,
+        portfolio.id  AS portfolioId 
+        FROM enter
+        JOIN trade ON enter.trade_id = trade.id 
+        JOIN stock ON trade.stock_id = stock.id 
+        JOIN activeStock ON activeStock.stock_id = stock.id
+        JOIN portfolio ON trade.portfolio_id = portfolio.id 
+        JOIN user ON portfolio.user_id  = user.id 
+        WHERE trade.id = ?
+      `;
       const [trade] = await Query.doByValue(query, item.idTrade); // array of object
 
       let actulizedTrade = {
@@ -109,7 +139,7 @@ export const getByUser = async (req, res) => {
         currentStop: trade.currentStop,
         comment: trade.comment,
       };
-
+      
       //détermination du PRU
       const queryPru = `SELECT SUM(price)+ SUM(fees) + SUM(tax) /  SUM(quantity) AS pru
               FROM enter
@@ -130,13 +160,33 @@ export const getByUser = async (req, res) => {
 
       // on alimente le tableau à  renvoyer
       activesTrades.push(actulizedTrade);
+
+      console.log("ici", activesTrades);
+       
     }
 
+    console.log ("la",activesTrades)
+
+    // Renvoi de la liste des trades actifs avec leurs détails en réponse
     res.status(200).json(activesTrades);
   } catch (error) {
-    res.json({ msg: error });
+    // En cas d'erreur, renvoi d'un message d'erreur dans la réponse JSON
+    res
+      .status(500)
+      .json({ msg: "Erreur lors de la récupération des trades actifs", error });
   }
 };
+
+
+
+
+
+
+
+
+
+
+
 
 /***********************************************************
  * Nouveau trade -> création du trade ET d'une entrée (l'entrée initiale)
