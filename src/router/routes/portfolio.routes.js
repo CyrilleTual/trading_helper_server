@@ -1,15 +1,22 @@
 import { Router } from "express";
-import { getDetailsOfOnePorfolio, getGlobalDashboardOfOneUser, getOnePortfolioDashboard, getPortfoliosByUser, newPortfolio, deposit, idlePortfolio } from "../../controller/portfolio.js";
+import {
+  getDetailsOfOnePorfolio,
+  getGlobalDashboardOfOneUser,
+  getOnePortfolioDashboard,
+  getPortfoliosByUser,
+  newPortfolio,
+  deposit,
+  idlePortfolio,
+} from "../../controller/portfolio.js";
 
 const router = Router();
 
-// router.get("/dashboard/global", getGlobalDashboard)
 router.get("/:idPortfolio/dashboard", getOnePortfolioDashboard); // dashboard d'un portfolio
-router.get("/user/:userId", getPortfoliosByUser) // retourne la liste des portfolios d'un user
+router.get("/user/:userId", getPortfoliosByUser); // retourne la liste des portfolios d'un user
 router.get("/dashBoard/user/:userId", getGlobalDashboardOfOneUser); // le dashboard global d'un user
 router.get("/:idPortfolio/details", getDetailsOfOnePorfolio); // le detail d'un portfolio par id de portfolio
-router.post("/new", newPortfolio) // creation d'un nouveau portfolio 
-router.post("/deposit", deposit) // depôt ou retrait du un portefeuille
+router.post("/new", newPortfolio); // creation d'un nouveau portfolio
+router.post("/deposit", deposit); // depôt ou retrait du un portefeuille
 router.put("/:idPortfolio/idle", idlePortfolio); // desactive un portfolio
 
 export default router;

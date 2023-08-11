@@ -1,43 +1,73 @@
-import jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken"; //https://github.com/auth0/node-jsonwebtoken
 import Query from "../model/query.js";
 
+/**
+ * Vérifie si le rôle de l'utilisateur correspond au rôle donné.
+ * -> verifie si pas de banissement ?
+ * @param {number} id - L'identifiant de l'utilisateur.
+ * @param {string} role - Le rôle à vérifier.
+ * @returns {boolean} - True si le rôle correspond, sinon False.
+ */
 async function checkRole(id, role) {
-  const query1 = `SELECT title  as role
+  try {
+    // Requête SQL pour obtenir le rôle de l'utilisateur
+    const query1 = `SELECT title as role
                     FROM user 
                     JOIN role ON role.id = user.role_id
-                    WHERE user.id = ?`;
-  const [user] = await Query.doByValue(query1, id);
-  return role === user.role ? true : false;
+                    WHERE user.id = ?
+    `;
+
+    // Exécute la requête et obtient le résultat
+    const [user] = await Query.doByValue(query1, id);
+
+    // Vérifie si le rôle de l'utilisateur correspond au rôle donné
+    return role === user.role ? true : false;
+  } catch (error) {
+    // En cas d'erreur, renvoie false
+    return false;
+  }
 }
 
-//**********************************************************
-//* Middle ware de verification de la validité du token
-//*/
-const { TOKEN_SECRET } = process.env; // cle de décriptage du token
 
+/**
+ * Middleware de vérification de la validité du token.
+ * @param {Object} req - L'objet de requête Express.
+ * @param {Object} res - L'objet de réponse Express.
+ * @param {Function} next - La fonction pour passer au prochain middleware.
+ */
 export const auth = async (req, res, next) => {
-  // va chercher le token dans l'entete
-  const TOKEN = req.headers["x-access-token"];
 
-  // verifie la validité du tocken
-  if (TOKEN === undefined || TOKEN === "null") {
-    res.status(404).json({ msg: "token not found" });
-    return;
-  } else {
-    jwt.verify(TOKEN, TOKEN_SECRET, async (err, decoded) => {
-      if (err) {
-        res.status(401).json({ status: 401, msg: "token invalid" });
-        return;
-      } else {
-        const ok = await checkRole(decoded.id, decoded.role);
-        if (ok) {
-          req.params.token = decoded; // on sauve le token dans req.params
-          next();
-        } else {
-          res.status(401).json({ status: 401, msg: "forbiden" });
+  // Clef de déchiffrement du token récupérée depuis les variables d'environnement
+  const { TOKEN_SECRET } = process.env;
+
+  try {
+    // Récupère le token depuis l'en-tête de la requête
+    const TOKEN = req.headers["x-access-token"];
+
+    // Vérifie si le token est présent et non nul
+    if (TOKEN === undefined || TOKEN === "null") {
+      res.status(404).json({ msg: "Token not found" });
+      return;
+    } else {
+      // Vérifie la validité du token en utilisant la clé secrète
+      jwt.verify(TOKEN, TOKEN_SECRET, async (err, decoded) => {
+        if (err) {
+          res.status(401).json({ status: 401, msg: "Invalid token" });
           return;
+        } else {
+          // Vérifie le rôle de l'utilisateur en utilisant la fonction checkRole
+          const isRoleValid = await checkRole(decoded.id, decoded.role);
+          if (isRoleValid) {
+            req.params.token = decoded; // Sauvegarde le token dans req.params
+            next(); // Passe au prochain middleware
+          } else {
+            res.status(401).json({ status: 401, msg: "Forbidden" });
+            return;
+          }
         }
-      }
-    });
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ msg: "Internal Server Error" });
   }
 };

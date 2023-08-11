@@ -60,17 +60,17 @@ export const lastQuote = async (req, res) => {
 /***********************************************************
  * recherche d'un stock par son id dans le tableau des activesstock
  */
-export const checkActive = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const query = `
-      SELECT *  FROM activeStock 
-      WHERE stock_id = ?
-    `;
-    const result = await Query.doByValue(query, id);
-    res.status(200).json( result );
-  } catch (error) {
-    res.json({ msg: error });
-  }
-};
+// export const checkActive = async (req, res) => {
+//   const { id } = req.params;
+//   try {
+//     const query = `
+//       SELECT *  FROM activeStock 
+//       WHERE stock_id = ?
+//     `;
+//     const result = await Query.doByValue(query, id);
+//     res.status(200).json( result );
+//   } catch (error) {
+//     res.json({ msg: error });
+//   }
+// };
 

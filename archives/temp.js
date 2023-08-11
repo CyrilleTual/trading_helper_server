@@ -1,64 +1,43 @@
- import { parentPort } from "worker_threads";
- import Query from "../model/query.js";
- import puppeteer from "puppeteer";
- import { extractDatasAbc } from "./scraper.js";
+ import jwt from "jsonwebtoken";
 
- (async () => {
+ // Clef de déchiffrement du token récupérée depuis les variables d'environnement
+ const { TOKEN_SECRET } = process.env;
+
+ /**
+  * Middleware de vérification de la validité du token.
+  * @param {Object} req - L'objet de requête Express.
+  * @param {Object} res - L'objet de réponse Express.
+  * @param {Function} next - La fonction pour passer au prochain middleware.
+  */
+ export const auth = async (req, res, next) => {
    try {
-     // Retrieve information of active stocks
-     const query = `
-        SELECT stock.id, stock.isin, stock.title, stock.ticker, stock.place, activeStock.lastQuote, activeStock.updDate
-        FROM stock
-        INNER JOIN activeStock ON stock.id = activeStock.stock_id
-        `;
-     const activeStocks = await Query.find(query);
+     // Récupère le token depuis l'en-tête de la requête
+     const TOKEN = req.headers["x-access-token"];
 
-     // Launch a headless browser instance
-     const browser = await puppeteer.launch({
-       headless: true, // Launch a browser without UI
-     });
-
-     let index = 0;
-     // Loop through active stocks to retrieve and update data
-     for await (const element of activeStocks) {
-       index++;
-       let { id, ticker, place } = element;
-       let currentPage = await browser.newPage(); // Create a new page for each stock
-
-       // Extract data from the page using extractDatasAbc function
-       const {
-         before,
-         last: lastQuote,
-         currency,
-       } = await extractDatasAbc(currentPage, ticker, place);
-
-       // Log extracted data for verification
-       console.log(before, lastQuote, currency);
-
-       // Get current timestamp
-       let updDate = new Date();
-
-       // Update data in the database
-       const updateQuery = `UPDATE activeStock
-          SET lastQuote=?, beforeQuote=?, updDate=?, currencySymbol=?
-          WHERE stock_id = ?`;
-       await Query.doByValues(updateQuery, {
-         lastQuote,
-         before,
-         updDate,
-         currency,
-         id,
+     // Vérifie si le token est présent et non nul
+     if (TOKEN === undefined || TOKEN === "null") {
+       res.status(404).json({ msg: "Token not found" });
+       return;
+     } else {
+       // Vérifie la validité du token en utilisant la clé secrète
+       jwt.verify(TOKEN, TOKEN_SECRET, async (err, decoded) => {
+         if (err) {
+           res.status(401).json({ status: 401, msg: "Invalid token" });
+           return;
+         } else {
+           // Vérifie le rôle de l'utilisateur en utilisant la fonction checkRole
+           const isRoleValid = await checkRole(decoded.id, decoded.role);
+           if (isRoleValid) {
+             req.params.token = decoded; // Sauvegarde le token dans req.params
+             next(); // Passe au prochain middleware
+           } else {
+             res.status(401).json({ status: 401, msg: "Forbidden" });
+             return;
+           }
+         }
        });
-
-       await currentPage.close(); // Close the page after usage
      }
-
-     await browser.close(); // Close the browser instance
-
-     // Send a completion message to the parent thread
-     const message = "Task is done!";
-     parentPort.postMessage(message);
    } catch (error) {
-     console.log({ msg: error });
+     res.status(500).json({ msg: "Internal Server Error" });
    }
- })();
+ };
