@@ -1,6 +1,8 @@
 import Query from "../model/query.js";
 
 
+
+
  /**
  * Retourne les trades actifs à partir du tableau des entrées et de celui des sorties.
  * 
@@ -8,7 +10,7 @@ import Query from "../model/query.js";
  * @param {Array} closed - Tableau des trades fermés.
  * @returns {Array} Tableau des trades actifs.
  */
-export function activesOnly(opened, closed) {
+function activesOnly(opened, closed) {
   let activesTrades = [];
 
   for (const entry of opened) {
@@ -76,92 +78,23 @@ export const getAll = async (req, res) => {
 
 
 
-/**
- * Obtient les détails des trades ouverts.
- * @param {Array} opensTradesList - Liste des trades ouverts.
- * @returns {Array} - Liste des trades ouverts avec leurs détails.
- */
-async function getDetailsOfOpensTrades(opensTradesList) {
-  let activesTrades = [];
-
-  // Parcourt la liste des trades ouverts
-  for (const item of opensTradesList) {
-    // Obtient les détails actualisés du trade en cours
-    const detailsActive = await actualisation(item);
-    
-    // Ajoute les détails du trade actualisé à la liste des trades actifs
-    activesTrades.push(detailsActive);
-  }
-
-  // Renvoie la liste des trades actifs avec leurs détails
-  return activesTrades;
-}
 
 
-/**
- * Actualise les détails d'un trade.
- * @param {Object} item - Informations sur le trade.
- * @returns {Object} - Détails actualisés du trade.
- */
-async function actualisation(item) {
-  // Requête pour obtenir les détails du trade
-  const query = `
-    SELECT DISTINCT stock.title, stock.id AS stockId, stock.isin AS isin, stock.place AS place, stock.ticker AS ticker, 
-    activeStock.lastQuote,
-    trade.firstEnter, currentTarget, currentStop, trade.comment,
-    portfolio.id AS portfolioId 
-    FROM enter
-    JOIN trade ON enter.trade_id = trade.id 
-    JOIN stock ON trade.stock_id = stock.id 
-    JOIN activeStock ON activeStock.stock_id = stock.id
-    JOIN portfolio ON trade.portfolio_id = portfolio.id 
-    JOIN user ON portfolio.user_id = user.id 
-    WHERE trade.id = ?
-  `;
-
-  // Exécute la requête pour obtenir les détails du trade
-  const [trade] = await Query.doByValue(query, item.idTrade);
-
-  // Requête pour déterminer le PRU
-  const queryPru = `
-    SELECT SUM(price) + SUM(fees) + SUM(tax) / SUM(quantity) AS pru
-    FROM enter
-    WHERE trade_id = ?
-  `;
-  
-  // Exécute la requête pour obtenir le PRU
-  const [{ pru }] = await Query.doByValue(queryPru, [item.idTrade]);
-
-  // Crée un objet avec les détails actualisés du trade
-  let actulizedTrade = {
-    title: trade.title,
-    isin: trade.isin,
-    place: trade.place,
-    ticker: trade.ticker,
-    lastQuote: trade.lastQuote,
-    quantity: item.remains,
-    pru: Number.parseFloat(pru).toFixed(3),
-    perf: `${Number.parseFloat((trade.lastQuote - pru) / pru).toFixed(2)} %`,
-    firstEnter: new Date(trade.firstEnter).toLocaleDateString("fr-FR"),
-    currentTarget: trade.currentTarget,
-    currentStop: trade.currentStop,
-    comment: trade.comment,
-  };
-  
-  return actulizedTrade;
-}
 
 
-/**
- * Récupère la liste des trades actifs pour un utilisateur.
- * @param {*} req - Requête HTTP.
- * @param {*} res - Réponse HTTP.
+
+
+
+/***********************************************************
+ * liste des trades actifs pour un user /trade/activeByUser/:id
  */
 export const getByUser = async (req, res) => {
+  
   const { userId } = req.params;
+  let activesTrades = []; // array à retourner
 
   try {
-    // Requête pour obtenir les trades ouverts par l'utilisateur
+    // array des trades ouverts par le user
     const queryOpened = `
       SELECT enter.trade_id AS tradeId, SUM(enter.quantity) AS opened
       FROM enter
@@ -172,7 +105,7 @@ export const getByUser = async (req, res) => {
       GROUP BY enter.trade_id
     `;
 
-    // Requête pour obtenir les trades fermés par l'utilisateur
+    // array des trades fermés par le user
     const queryClosed = `
       SELECT closure.trade_id AS tradeId, SUM(closure.quantity) AS closed
       FROM closure
@@ -183,20 +116,74 @@ export const getByUser = async (req, res) => {
       GROUP BY closure.trade_id
     `;
 
-    // Exécute les requêtes pour obtenir les trades ouverts et fermés
     const opened = await Query.doByValue(queryOpened, [userId]);
     const closed = await Query.doByValue(queryClosed, [userId]);
 
-    // Détermine la liste des trades actifs en fonction des trades ouverts et fermés
-    let tradeList = activesOnly(opened, closed);
+    // on va en déduire le tableau des trades actifs
+    let tradeList =  activesOnly(opened, closed);
 
-    // Obtenir les détails des trades actifs
-    let activesTrades = await getDetailsOfOpensTrades(tradeList);
+    /// pour chaque trade on va chercher les détails
+    for await (const item of tradeList) {
+      const query = `
+        SELECT DISTINCT stock.title, stock.id  AS stockId,  stock.isin AS isin, stock.place AS place, stock.ticker AS ticker, 
+        activeStock.lastQuote,
+        trade.firstEnter, currentTarget, currentStop, trade.comment,
+        portfolio.id  AS portfolioId 
+        FROM enter
+        JOIN trade ON enter.trade_id = trade.id 
+        JOIN stock ON trade.stock_id = stock.id 
+        JOIN activeStock ON activeStock.stock_id = stock.id
+        JOIN portfolio ON trade.portfolio_id = portfolio.id 
+        JOIN user ON portfolio.user_id  = user.id 
+        WHERE trade.id = ?
+      `;
+      const [trade] = await Query.doByValue(query, item.idTrade); // array of object
 
-    console.log("eee", activesTrades);
+      let actulizedTrade = {
+        title: trade.title,
+        isin: trade.isin,
+        place: trade.place,
+        ticker: trade.ticker,
+        lastQuote: trade.lastQuote,
+        quantity: item.remains,
+        pru: 0,
+        perf: 0,
+        firstEnter: trade.firstEnter,
+        currentTarget: trade.currentTarget,
+        currentStop: trade.currentStop,
+        comment: trade.comment,
+      };
 
-    // Renvoi de la liste des trades actifs avec leurs détails en réponse JSON
+      //détermination du PRU
+      const queryPru = `
+        SELECT SUM(price)+ SUM(fees) + SUM(tax) /  SUM(quantity) AS pru
+        FROM enter
+        WHERE trade_id = ?
+      `;
+      const [{ pru }] = await Query.doByValue(queryPru, [item.idTrade]);
+
+      // on complète et formate les informations à renvoyer
+      actulizedTrade.firstEnter = new Date(trade.firstEnter).toLocaleDateString(
+        "fr-FR"
+      );
+      actulizedTrade.pru = Number.parseFloat(pru).toFixed(3);
+      actulizedTrade.perf = `${Number.parseFloat(
+        (trade.lastQuote - pru) / pru
+      ).toFixed(2)} %`;
+
+      // on alimente le tableau à  renvoyer
+      activesTrades.push(actulizedTrade);
+
+      console.log ("ici",activesTrades)
+
+    }
+
+     result = await activesTrades
+     //console.log ("toto", result)
+ 
+    // Renvoi de la liste des trades actifs avec leurs détails en réponse
     res.status(200).json(activesTrades);
+
   } catch (error) {
     // En cas d'erreur, renvoi d'un message d'erreur dans la réponse JSON
     res
@@ -206,10 +193,18 @@ export const getByUser = async (req, res) => {
 };
 
 
-/**
- * Crée un nouveau trade avec une entrée initiale.
- * @param {*} req - Requête HTTP.
- * @param {*} res - Réponse HTTP.
+
+
+
+
+
+
+
+
+
+
+/***********************************************************
+ * Nouveau trade -> création du trade ET d'une entrée (l'entrée initiale)
  */
 export const newEntry = async (req, res) => {
   try {
@@ -230,10 +225,9 @@ export const newEntry = async (req, res) => {
       position,
     } = req.body;
 
-    // Crée la date de l'entrée initiale
+    // création du trade puis de l'entrée
     let dateToSet = new Date();
 
-    // Crée le nouveau trade et récupère son ID
     const query = `INSERT INTO trade ( stock_id, position, currentTarget, currentStop, comment, firstEnter, strategy_id ,  portfolio_id ,  currency_id ) 
         VALUES (?,?,?,?,?,?,?,?,?)`;
     const [result] = await Query.doByValues(query, {
@@ -249,7 +243,7 @@ export const newEntry = async (req, res) => {
     });
     const idTrade = result.insertId;
 
-    // Crée l'entrée initiale liée au trade (comments identiques, objectifs et target idem)
+    // création de l'entrée initiale en lien avec le trade  (comments identiques, objectifs et target idem)
     const querryEnter = `INSERT INTO enter (date, price, target, stop, quantity, fees, tax, comment, trade_id)
         VALUES ( ?,?,?,?,?,?,?,?,? )`;
     await Query.doByValues(querryEnter, {
@@ -272,7 +266,7 @@ export const newEntry = async (req, res) => {
     const existShares = await Query.doByValue(queryCheck, stock_id);
 
     if (existShares.length === 0) {
-      /// Si pas d'enregistrement trouvé, crée un nouveau dans activeStock
+      // pas d'enregistrement trouvé on en créé un
       const query = `INSERT INTO activeStock ( stock_id, lastQuote, beforeQuote) 
         VALUES (?,?,?)`;
       await Query.doByValues(query, {
@@ -287,11 +281,8 @@ export const newEntry = async (req, res) => {
   }
 };
 
-
-/**
- * Prépare les données pour afficher le formulaire de sortie ou de re-enter d'un trade.
- * @param {*} req - Requête HTTP.
- * @param {*} res - Réponse HTTP.
+/***********************************************************
+ * Exit sur un trade -> données pour affichage du formulaire
  */
 export const exitPrepare = async (req, res) => {
   const { tradeId } = req.params;
@@ -310,7 +301,7 @@ export const exitPrepare = async (req, res) => {
       WHERE closure.trade_id = ? `;
     const [closure] = await Query.doByValue(closureQuery, tradeId);
 
-    // on cherche les informations du trade
+    // on déternime les paramètres du trade
     const tradeQuery = `SELECT DISTINCT stock.title, stock.isin AS isin, stock.id AS stock_id,
             stock.place AS place, stock.ticker AS ticker, 
             activeStock.lastQuote,
@@ -325,7 +316,6 @@ export const exitPrepare = async (req, res) => {
 
     const [trade] = await Query.doByValue(tradeQuery, tradeId);
 
-    // Calculs pour affichage 
     const calculs = {
       pru: (enter.enterValue / enter.enterQuantity).toFixed(3),
       remains: +enter.enterQuantity - closure.closureQuantity,
@@ -336,7 +326,6 @@ export const exitPrepare = async (req, res) => {
       //opToDo: (trade.position = "long" ? "sell" : "buy"),
     };
 
-    // aggrégation des données et calculs 
     const result = { ...enter, ...closure, ...calculs, ...trade };
 
     res.status(200).json(result);
@@ -345,10 +334,8 @@ export const exitPrepare = async (req, res) => {
   }
 };
 
-/**
- * Traite la création d'une sortie / closure
- * @param {*} req - Requête HTTP.
- * @param {*} res - Réponse HTTP.
+/***********************************************************
+ * ontraite la création d'une sortie  / exit process
  */
 export const exitProcess = async (req, res) => {
   const {
@@ -372,10 +359,7 @@ export const exitProcess = async (req, res) => {
 
   try {
     // insersion de la cloture du trade
-    const query = `
-      INSERT INTO closure(date, price, quantity, fees, tax, comment, trade_id) 
-      VALUES (?,?,?,?,?,?,?) 
-    `;
+    const query = `INSERT INTO closure(date, price, quantity, fees, tax, comment, trade_id) VALUES (?,?,?,?,?,?,?) `;
     await Query.doByValues(query, {
       date,
       price,
@@ -386,47 +370,39 @@ export const exitProcess = async (req, res) => {
       trade_id,
     });
 
-    // Rechercher le nombre de titre residuel
-    const query2 = `
-      SELECT SUM(quantity) AS nbEnter 
+    // on cherhche le nombre de titre residuel
+
+    const query2 = `SELECT SUM(quantity) AS nbEnter 
       FROM enter
       JOIN trade ON enter.trade_id = trade.id
-      WHERE trade.stock_id = ?
-    `;
+      WHERE trade.stock_id = ?`;
     const [stocksEntered] = await Query.doByValue(query2, stock_id);
 
-    const query3 = `
-      SELECT COALESCE(SUM(quantity),0) as nbExit
+    const query3 = `SELECT COALESCE(SUM(quantity),0) as nbExit
       FROM closure
       JOIN trade ON closure.trade_id = trade.id 
-      WHERE trade.stock_id = ? 
-    `;
+      WHERE trade.stock_id = ? `;
     const [stocksExited] = await Query.doByValue(query3, stock_id);
 
     const stocksRemaining = stocksEntered.nbEnter - stocksExited.nbExit;
 
-    // Si il n'y a plus de position active on efface la ligne du suivi !!
+    // si plus de position -> on efface la ligne du suivi !!
+
     if (stocksRemaining < 1) {
+      // si il ne reste pas de tritres alors on efface l'entrée des suivis
       const query4 = `DELETE FROM activeStock WHERE stock_id = ?`;
       await Query.doByValue(query4, stock_id);
     }
-
-     res.status(200).json("Sortie correcte");
-
+    res.status(200).json("exit  correct");
   } catch (error) {
     res.json({ msg: error });
   }
 };
 
-
-/**
- * Re-Enter dans un trade en cours
- * @param {*} req - Requête HTTP.
- * @param {*} res - Réponse HTTP.
+/***********************************************************
+ * Re Enter sur un trade en cours
  */
 export const reEnterProcess = async (req, res) => {
-
-  // Récupérer les informations à partir du body de la requête 
   const {
     comment,
     date,
@@ -441,11 +417,9 @@ export const reEnterProcess = async (req, res) => {
   } = req.body;
 
   try {
-    // Insérer une nouvelle entrée de trade
-    const querryEnter = `
-      INSERT INTO enter (date, price, target, stop, quantity, fees, tax, comment, trade_id)
-      VALUES ( ?,?,?,?,?,?,?,?,? )
-    `;
+    // insertion d'une nouvelle enrtrée de trade
+    const querryEnter = `INSERT INTO enter (date, price, target, stop, quantity, fees, tax, comment, trade_id)
+        VALUES ( ?,?,?,?,?,?,?,?,? )`;
     await Query.doByValues(querryEnter, {
       date,
       price,
@@ -457,44 +431,31 @@ export const reEnterProcess = async (req, res) => {
       comment,
       trade_id,
     });
+    //modification des stop et objectifs en fonction des nouveaux
 
-    // Modification des stops et objectifs en fonction des nouveaux
-    const queryUpd = `
-      UPDATE trade
-      SET currentTarget=?, currentStop=?, comment=? 
-      WHERE id = ?
-    `;
-    await Query.doByValues(queryUpd, {
+    const query = `UPDATE trade
+          SET currentTarget=?, currentStop=?, comment=? 
+          WHERE id = ?`;
+    await Query.doByValues(query, {
       target,
       stop,
       comment,
       trade_id,
     });
 
-    res.status(200).json("Trade ré-entré correctement");
-
+    res.status(200).json("trade entré correctement");
   } catch (error) {
     res.json({ msg: error });
   }
 };
 
+// verification de l'existance de trade actif (pour eviter les doublons)
 
-
-/**
- * Vérifie l'existence d'un trade actif (pour éviter les doublons).
- * @param {*} req - Requête HTTP.
- * @param {*} res - Réponse HTTP.
- */
 export const checkIfActiveTrade = async (req, res) => {
-
   const { idStock, idPortfolio } = req.params;
 
   try {
-    // Requête pour trouver les trades existants (avec le stock_id et le portfolio_id )
-    const query = `
-      SELECT id FROM trade 
-      WHERE stock_id = ? and portfolio_id = ? 
-    `;
+    const query = `SELECT id FROM trade WHERE stock_id = ? and portfolio_id = ? `;
 
     const [existingTrades] = await Query.doByValues(query, {
       idStock,
@@ -502,42 +463,23 @@ export const checkIfActiveTrade = async (req, res) => {
     });
 
     //(existingTrades); // tableau d'objet ex: [ { id: 114 }, { id: 120 } ]
-    // Pour chaque trade, comptez le nombre d'entrées et de fermetures
-    // Si il existe des trades actifs les stocker dans le trableau activeTrade
+    // pour chaque trade on va compter le nombre d'entrée et celui des sorties
 
     const activeTrade = [];
 
-    // Pour chaque trade existant verifie si est actif ou non
     for (const trade of existingTrades) {
-      // Requête pour obtenir la somme des quantités d'entrée pour ce trade
-      const queryEnter = `
-        SELECT COALESCE(SUM(quantity),0)  as nbEnter  
-        FROM enter 
-        WHERE trade_id = ?
-      `;
-      // Requête pour obtenir la somme des quantités de fermeture pour ce trade
-      const queryClosure = `
-        SELECT COALESCE(SUM(quantity),0) as nbClosure  
-        FROM closure 
-        WHERE trade_id = ? 
-      `;
-      // Exécution des requêtes pour obtenir les quantités d'entrée et de fermeture
+      const queryEnter = `SELECT COALESCE(SUM(quantity),0)  as nbEnter  FROM enter WHERE trade_id = ?`;
+      const queryClosure = `SELECT COALESCE(SUM(quantity),0) as nbClosure  FROM closure WHERE trade_id = ? `;
       const [enter] = await Query.doByValue(queryEnter, trade.id);
       const [closure] = await Query.doByValue(queryClosure, trade.id);
-
-      // Calcul du stock restant en portefeuille pour ce trade
       const stockLeft = +enter.nbEnter - closure.nbClosure;
-
-      // Si des stocks restent en portefeuille, le trade est considéré comme actif
+      //console.log(trade.id, stockLeft);
       if (stockLeft > 0) {
         activeTrade.push(trade.id);
       }
       //console.log(activeTrade);
     }
-
-    /// Retourne le tableau des IDs de trades actifs en réponse
     res.status(200).json(activeTrade);
-    
   } catch (error) {
     res.json({ msg: error });
   }
