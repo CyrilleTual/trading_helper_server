@@ -119,4 +119,87 @@ const signin = async (req, res) => {
   }
 };
 
-export { signup, signin };
+
+/**
+ * Vérifie les informations d'utilisateur à partir des données décodées du token etretourne des
+ * information complémentaires.
+ * @param {Objet} decoded Les données décodées du token contenant les informations de l'utilisateur.
+ * @returns Les informations de l'utilisateur obtenues à partir de la base de données.
+ */
+async function checkinfos (decoded){
+  const { id, role } = decoded
+  // verification de la validité des informations
+  const query = `SELECT user.id, email, alias, title  as role
+    FROM user
+    JOIN role ON role.id = user.role_id
+    WHERE user.id = ? AND role.title = ?`;
+  const [user] = await Query.doByValues(query, {id, role});
+  return (user);
+}
+
+
+/**
+ * Gère la connexion automatique à partir d'un token valide.
+ * @param {Request} req L'objet requête.
+ * @param {Response} res L'objet réponse.
+ * @returns les infos de l'user 
+ */
+const logByRemenber = async (req, res) => {
+
+  console.log ("icici ")
+
+
+
+  try {
+    // Récupère le token depuis l'en-tête de la requête
+    const TOKEN = req.headers["x-access-token"];
+
+    // Vérifie si le token est présent et non nul
+    if (TOKEN === undefined || TOKEN === "null") {
+      res.status(404).json({ msg: "Token not found" });
+      return;
+    } else {
+      // Vérifie la validité du token en utilisant la clé secrète
+      jwt.verify(TOKEN, TOKEN_SECRET, async (err, decoded) => {
+        if (err) {
+          res.status(401).json({ status: 401, msg: "Invalid token" });
+          return;
+        } else {
+          // Vérifie la conformité du contenu du token avec les informations de la base de données ( en particulier role) et récupère les informations nécessaires pour le store front
+
+          const user = await checkinfos(decoded);
+
+          if (user.length !== 0) {
+            // utilisateur trouvé
+
+            const [{ id, email, alias, role }] = user;
+
+            // Envoie la réponse avec les informations de l'utilisateur
+            res.status(200).json({
+              msg: "Connexion auto réussie",
+              id,
+              email,
+              alias,
+              role,
+            });
+          }
+        }
+      });
+    }
+     
+  } catch (error) {
+    res.status(401).json({ msg: "Problème d'identifiant" });
+  }
+};
+
+
+
+
+
+
+
+
+export { signup, signin, logByRemenber };
+
+
+
