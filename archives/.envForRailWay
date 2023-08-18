@@ -1,12 +1,13 @@
 # Database
 LOCAL_PORT = "9002"
-DB_HOST = "mysql://root:T7XE8ODpsY3QiUuQ1pxZ@containers-us-west-163.railway.app:7412/railway"
+DB_HOST = "containers-us-west-163.railway.app"
 DB_NAME = "railway"
 DB_USER = "root"
 DB_PWD = "T7XE8ODpsY3QiUuQ1pxZ"
 DB_PORT = "7412"
+
 # server 
-HOSTNAME = "containers-us-west-163.railway.app"
+HOSTNAME = ""
 # JWT param
 TOKEN_SECRET = "xF"]U,;Fv@0^~Yvy:zoM[NW121*pgH"
 # Bcrypt param

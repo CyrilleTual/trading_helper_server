@@ -12,6 +12,8 @@ import { startCronJobs } from "./utils/cronJobs.js"; // pour démarrer les tâch
 const PORT = process.env.PORT || LOCAL_PORT;
 const app = express();
 
+console.log("ici", process.env.PORT);
+
 // Création fichiers pour journaliser les accès, rotation quotidienne
 const accessLogStream = rfs.createStream("access.log", {
   interval: "1d", // rotate daily

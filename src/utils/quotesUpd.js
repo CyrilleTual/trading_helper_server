@@ -17,6 +17,7 @@ import { extractDatasAbc } from "./scrapeFromAbc.js";
     // Lancement d'une instance de navigateur en mode "headless"
     const browser = await puppeteer.launch({
       headless: "new", // lance un navigateur sans UI
+      args: ["--no-sandbox", "--disable-setuid-sandbox"], ///// attention pour railway mais faille de sécurité
     });
 
     let index = 0;
