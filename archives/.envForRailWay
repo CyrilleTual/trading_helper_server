@@ -1,0 +1,17 @@
+# Database
+LOCAL_PORT = "9002"
+DB_HOST = "mysql://root:T7XE8ODpsY3QiUuQ1pxZ@containers-us-west-163.railway.app:7412/railway"
+DB_NAME = "railway"
+DB_USER = "root"
+DB_PWD = "T7XE8ODpsY3QiUuQ1pxZ"
+DB_PORT = "7412"
+# server 
+HOSTNAME = "containers-us-west-163.railway.app"
+# JWT param
+TOKEN_SECRET = "xF"]U,;Fv@0^~Yvy:zoM[NW121*pgH"
+# Bcrypt param
+SALT = "10"
+# Application base currency - DB pour paramétrage, table "currency" -> utilisation de l'id 
+APP_CURRENCY_ID = "1"
+# APU base Url 
+API_BASE_URL = "/api.tradingtool.com/v1"
