@@ -1,4 +1,5 @@
 import Query from "../model/query.js";
+import { newEntryInputCheck, reEnterInputCheck, exitInputCheck }  from "./inputsValidationUtils.js"
 
 
  /**
@@ -213,7 +214,16 @@ export const getByUser = async (req, res) => {
  */
 export const newEntry = async (req, res) => {
   try {
-    const {
+ 
+     const { inputsErrors, verifiedValues } = await newEntryInputCheck(req.body, res);
+
+    if (inputsErrors.length > 0) {  // il y a des erreurs 
+      res.status(400).json({
+      msg: "Requête incorrecte, création rejetée",
+      });
+      return;
+    }else{
+          const {
       stock_id,
       price,
       target,
@@ -228,7 +238,7 @@ export const newEntry = async (req, res) => {
       lastQuote,
       beforeQuote,
       position,
-    } = req.body;
+    } = verifiedValues;
 
     // Crée la date de l'entrée initiale
     let dateToSet = new Date();
@@ -282,6 +292,9 @@ export const newEntry = async (req, res) => {
       });
     }
     res.status(200).json("trade entré correctement");
+    }  
+
+
   } catch (error) {
     res.json({ msg: error });
   }
@@ -351,70 +364,81 @@ export const exitPrepare = async (req, res) => {
  * @param {*} res - Réponse HTTP.
  */
 export const exitProcess = async (req, res) => {
-  const {
-    comment,
-    date,
-    fees,
-    price,
-    quantity,
-    remains,
-    stock_id,
-    tax,
-    trade_id,
-  } = req.body;
+  
+  const { inputsErrors, verifiedValues } = await exitInputCheck(req.body, res);
 
-  // transformation de la date
-  //const dateParts = date.split("-");
-  // Create a new Date object
-  //const sqldate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
-  // Get the current timestamp
-  //const timestamp = sqldate.toISOString().slice(0, 19).replace("T", " ");
-
-  try {
-    // insersion de la cloture du trade
-    const query = `
-      INSERT INTO closure(date, price, quantity, fees, tax, comment, trade_id) 
-      VALUES (?,?,?,?,?,?,?) 
-    `;
-    await Query.doByValues(query, {
+  if (inputsErrors.length > 0) {
+    // il y a des erreurs
+    res.status(400).json({
+      msg: "Requête incorrecte, création rejetée",
+    });
+    return;
+  } else {
+    const {
+      comment,
       date,
+      fees,
       price,
       quantity,
-      fees,
+      remains,
+      stock_id,
       tax,
-      comment,
       trade_id,
-    });
+    } = verifiedValues;
 
-    // Rechercher le nombre de titre residuel
-    const query2 = `
-      SELECT SUM(quantity) AS nbEnter 
-      FROM enter
-      JOIN trade ON enter.trade_id = trade.id
-      WHERE trade.stock_id = ?
-    `;
-    const [stocksEntered] = await Query.doByValue(query2, stock_id);
+        // transformation de la date
+        //const dateParts = date.split("-");
+        // Create a new Date object
+        //const sqldate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+        // Get the current timestamp
+        //const timestamp = sqldate.toISOString().slice(0, 19).replace("T", " ");
 
-    const query3 = `
-      SELECT COALESCE(SUM(quantity),0) as nbExit
-      FROM closure
-      JOIN trade ON closure.trade_id = trade.id 
-      WHERE trade.stock_id = ? 
-    `;
-    const [stocksExited] = await Query.doByValue(query3, stock_id);
+    try {
+      // insersion de la cloture du trade
+      const query = `
+        INSERT INTO closure(date, price, quantity, fees, tax, comment, trade_id) 
+        VALUES (?,?,?,?,?,?,?) 
+      `;
+      await Query.doByValues(query, {
+        date,
+        price,
+        quantity,
+        fees,
+        tax,
+        comment,
+        trade_id,
+      });
 
-    const stocksRemaining = stocksEntered.nbEnter - stocksExited.nbExit;
+      // Rechercher le nombre de titre residuel
+      const query2 = `
+        SELECT SUM(quantity) AS nbEnter 
+        FROM enter
+        JOIN trade ON enter.trade_id = trade.id
+        WHERE trade.stock_id = ?
+      `;
+      const [stocksEntered] = await Query.doByValue(query2, stock_id);
 
-    // Si il n'y a plus de position active on efface la ligne du suivi !!
-    if (stocksRemaining < 1) {
-      const query4 = `DELETE FROM activeStock WHERE stock_id = ?`;
-      await Query.doByValue(query4, stock_id);
+      const query3 = `
+        SELECT COALESCE(SUM(quantity),0) as nbExit
+        FROM closure
+        JOIN trade ON closure.trade_id = trade.id 
+        WHERE trade.stock_id = ? 
+      `;
+      const [stocksExited] = await Query.doByValue(query3, stock_id);
+
+      const stocksRemaining = stocksEntered.nbEnter - stocksExited.nbExit;
+
+      // Si il n'y a plus de position active on efface la ligne du suivi !!
+      if (stocksRemaining < 1) {
+        const query4 = `DELETE FROM activeStock WHERE stock_id = ?`;
+        await Query.doByValue(query4, stock_id);
+      }
+
+    res.status(200).json("Sortie correcte");
+
+    } catch (error) {
+      res.json({ msg: error });
     }
-
-     res.status(200).json("Sortie correcte");
-
-  } catch (error) {
-    res.json({ msg: error });
   }
 };
 
@@ -426,52 +450,64 @@ export const exitProcess = async (req, res) => {
  */
 export const reEnterProcess = async (req, res) => {
 
-  // Récupérer les informations à partir du body de la requête 
-  const {
-    comment,
-    date,
-    fees,
-    price,
-    quantity,
-    stock_id,
-    stop,
-    target,
-    tax,
-    trade_id,
-  } = req.body;
-
   try {
-    // Insérer une nouvelle entrée de trade
-    const querryEnter = `
-      INSERT INTO enter (date, price, target, stop, quantity, fees, tax, comment, trade_id)
-      VALUES ( ?,?,?,?,?,?,?,?,? )
-    `;
-    await Query.doByValues(querryEnter, {
-      date,
-      price,
-      target,
-      stop,
-      quantity,
-      fees,
-      tax,
-      comment,
-      trade_id,
-    });
+ 
+    const { inputsErrors, verifiedValues } = await reEnterInputCheck(req.body, res);
 
-    // Modification des stops et objectifs en fonction des nouveaux
-    const queryUpd = `
-      UPDATE trade
-      SET currentTarget=?, currentStop=?, comment=? 
-      WHERE id = ?
-    `;
-    await Query.doByValues(queryUpd, {
-      target,
-      stop,
-      comment,
-      trade_id,
-    });
+    if (inputsErrors.length > 0) {  // il y a des erreurs 
+      res.status(400).json({
+      msg: "Requête incorrecte, création rejetée",
+      });
+      return;
+    }else{ 
 
-    res.status(200).json("Trade ré-entré correctement");
+      // Récupérer les informations  
+      const {
+        comment,
+        date,
+        fees,
+        price,
+        quantity,
+        stock_id,
+        stop,
+        target,
+        tax,
+        trade_id,
+      } = verifiedValues;
+ 
+      // Insérer une nouvelle entrée de trade
+      const querryEnter = `
+        INSERT INTO enter (date, price, target, stop, quantity, fees, tax, comment, trade_id)
+        VALUES ( ?,?,?,?,?,?,?,?,? )
+      `;
+      await Query.doByValues(querryEnter, {
+        date,
+        price,
+        target,
+        stop,
+        quantity,
+        fees,
+        tax,
+        comment,
+        trade_id,
+      });
+
+      // Modification des stops et objectifs en fonction des nouveaux
+      const queryUpd = `
+        UPDATE trade
+        SET currentTarget=?, currentStop=?, comment=? 
+        WHERE id = ?
+      `;
+      await Query.doByValues(queryUpd, {
+        target,
+        stop,
+        comment,
+        trade_id,
+      });
+
+      res.status(200).json("Trade ré-entré correctement");
+
+    }
 
   } catch (error) {
     res.json({ msg: error });

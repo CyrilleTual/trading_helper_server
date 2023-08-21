@@ -14,42 +14,60 @@ import {
  */
 export const newPortfolio = async (req, res) => {
   try {
+    // Récupération des données de la requête
 
-    const { inputsErrors, verifiedValues } = await newPortfolioInputCheck(req.body, res);
 
-    if (inputsErrors.length > 0) {
-      // il y a des erreurs
-      res.status(400).json({
-        msg: "Requête incorrecte, création rejetée",
-      });
-      return;
-    } else {
-      const { title, comment, deposit, user_id, currency_id, status } =
-        verifiedValues;
-      // Requête d'insertion pour créer un nouveau portefeuille dans la base de données
-      const query = `
-        INSERT INTO portfolio (title, comment, user_id,currency_id, status  ) 
-        VALUES (?,?,?,?,?)
-      `;
+    
+    const { title, comment, deposit, user_id, currency_id, status } = req.body;
 
-      //Exécution de la requête d'insertion et récupération du résultat
-      const [result] = await Query.doByValues(query, {
-        title,
-        comment,
-        user_id,
-        currency_id,
-        status,
-      });
 
-      // Obtention de l'ID du portefeuille nouvellement créé
-      const idPort = await result.insertId;
 
-      // Appel de la fonction feedPortfolio pour effectuer un versement initial
-      feedPortfolio(idPort, deposit);
 
-      // Réponse indiquant que le portefeuille a été créé avec succès
-      res.status(200).json({ msg: "Portefeuille créé avec succès." });
-    }
+
+
+
+
+
+
+
+
+
+
+    console.log (req.body)
+
+   
+   
+    // const { inputsErrors, verifiedValues } = await newPortfolioInputCheck(
+    //   req.body,
+    //   res
+    // );
+
+    return;
+
+    // Requête d'insertion pour créer un nouveau portefeuille dans la base de données
+    const query = `
+      INSERT INTO portfolio (title, comment, user_id,currency_id, status  ) 
+      VALUES (?,?,?,?,?)
+    `;
+
+    //Exécution de la requête d'insertion et récupération du résultat
+    const [result] = await Query.doByValues(query, {
+      title,
+      comment,
+      user_id,
+      currency_id,
+      status,
+    });
+
+    // Obtention de l'ID du portefeuille nouvellement créé
+    const idPort = await result.insertId;
+
+    // Appel de la fonction feedPortfolio pour effectuer un versement initial
+    feedPortfolio(idPort, deposit);
+
+    // Réponse indiquant que le portefeuille a été créé avec succès
+    res.status(200).json({ msg: "Portefeuille créé avec succès." });
+
   } catch (error) {
     // En cas d'erreur, renvoyer un message d'erreur dans la réponse
     res.json({ msg: error });
