@@ -58,6 +58,12 @@ export const auth = async (req, res, next) => {
           // Vérifie le rôle de l'utilisateur en utilisant la fonction checkRole
           const isRoleValid = await checkRole(decoded.id, decoded.role);
           if (isRoleValid) {
+
+        
+
+            res.locals.datas = {userId:decoded.id, role:decoded.role} // sauvegarde du token dans reslocals
+
+
             req.params.token = decoded; // Sauvegarde le token dans req.params
             next(); // Passe au prochain middleware
           } else {

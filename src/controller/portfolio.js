@@ -61,7 +61,9 @@ export const deposit = async (req, res) => {
     feedPortfolio(portfolioId, amountToInsert);
 
     // Réponse indiquant que l'opération de dépôt/retrait a été effectuée avec succès
-    res.status(200).json({ msg: "Opération de versement effectuée avec succès." });
+    res
+      .status(200)
+      .json({ msg: "Opération de versement effectuée avec succès." });
   } catch (error) {
     // En cas d'erreur, renvoyer un message d'erreur dans la réponse
     res.json({ msg: error });

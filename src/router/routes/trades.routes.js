@@ -14,9 +14,9 @@ const router = Router();
 router.get("/active", getAll); // tous les trades actifs -> pour admin 
 router.get("/activeByUser/:userId", getByUser);
 router.get("/checkIfActive/:idStock&:idPortfolio", checkIfActiveTrade);
-router.post("/newEntry", newEntry);
 router.get("/:tradeId/prepare", exitPrepare); // Also valid for reEnter
-router.post("/exitProcess", exitProcess);
-router.post("/reEnter", reEnterProcess);
+router.post("/newEntry", newEntry); // creation d'un trade 
+router.post("/exitProcess", exitProcess); // vente d'un actif
+router.post("/reEnter", reEnterProcess); // re-enter sur un actif
 
 export default router;

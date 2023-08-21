@@ -7,7 +7,7 @@ import { signup, signin, logByRemenber } from "../../controller/user.js";
 const router = Router();
 
 //router.get("/checkToken", auth, checkToken);
-router.post("/signup", signup);
+router.post("/signup", signup); 
 router.post("/signin", signin);
 router.get("/logByRemenber", logByRemenber);
 

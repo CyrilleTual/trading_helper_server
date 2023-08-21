@@ -3,6 +3,6 @@ import { getCurrencies } from "../../controller/currency.js";
 
 const router = Router();
 
-router.get("/", getCurrencies);
+router.get("/", getCurrencies); // récupère les monnaies
 
 export default router;
