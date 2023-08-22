@@ -7,30 +7,28 @@ import {
   verifyTrade,
 } from "./controllerFunctionsUtils.js";
 
-function checkNumbers (arrayToCheck, inputsErrors){
-    for (const value of arrayToCheck) {
-      if (
-        isNaN(value) || // Vérifie si c'est un nombre
-        value < 0 || // Vérifie qu'il n'est pas négatif
-        value > 9999999 || // Vérifie qu'il n'a pas plus de 7 chiffres
-        value * 1000 - Math.trunc(value * 1000) > 0 // Vérifie qu'il n'a pas plus de 3 décimales
-      ) {
-        inputsErrors.push("Donnée numérique invalide");
-      }
+/**
+ * Vérifie si les éléments d'un tableau sont des nombres positifs avec certaines contraintes.
+ * @param {Array} arrayToCheck - Le tableau à vérifier.
+ * @returns {string} - Message d'erreur ou chaîne vide.
+ */
+function checkNumbers(arrayToCheck) {
+  for (const value of arrayToCheck) {
+    if (
+      isNaN(value) || // Vérifie si c'est un nombre
+      value < 0 || // Vérifie qu'il n'est pas négatif
+      value > 9999999 || // Vérifie qu'il n'a pas plus de 7 chiffres
+      value * 1000 - Math.trunc(value * 1000) > 0 // Vérifie qu'il n'a pas plus de 3 décimales
+    ) {
+      return "Donnée numérique invalide";
     }
-    return inputsErrors
+  }
+  return ""; // Aucune erreur, retourne une chaîne vide
 }
 
-
-
-
-
-
- 
- 
 /**
  * Vérifie les données d'entrée pour l'inscription.
- * 
+ *
  * @param {*} inputs - Les données d'entrée à vérifier (email, pwd, alias).
  * @returns {Object} - Un objet contenant les erreurs éventuelles et les valeurs vérifiées.
  */
@@ -40,7 +38,7 @@ export async function signupInputCheck(inputs) {
   let verifiedValues = {}; // Objet pour stocker les valeurs vérifiées
 
   // Vérification de l'email
-  const cleanEmail = (email.trim()).toLowerCase();
+  const cleanEmail = email.trim().toLowerCase();
 
   const regex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/i;
   if (!regex.test(cleanEmail)) {
@@ -76,15 +74,13 @@ export async function signupInputCheck(inputs) {
   return { inputsErrors, verifiedValues }; // Renvoi des erreurs et des valeurs vérifiées
 }
 
-
 /**
  * Vérifie les données d'entrée pour le login
- * 
+ *
  * @param {*} inputs - Les données d'entrée à vérifier (email, pwd ).
  * @returns {Object} - Un objet contenant les erreurs éventuelles et les valeurs vérifiées.
  */
 export async function signinInputCheck(inputs) {
-
   const { email, pwd } = inputs;
   const inputsErrors = []; // Tableau pour stocker les erreurs d'entrée
   let verifiedValues = {}; // Objet pour stocker les valeurs vérifiées
@@ -100,7 +96,7 @@ export async function signinInputCheck(inputs) {
   // Vérification du mot de passe
   const cleanPwd = pwd.trim();
   // Vérification de la longueur
-  if (cleanPwd.length > 20 ) {
+  if (cleanPwd.length > 20) {
     inputsErrors.push("Mot de passe non valide");
   }
 
@@ -113,16 +109,13 @@ export async function signinInputCheck(inputs) {
   return { inputsErrors, verifiedValues }; // Renvoi des erreurs et des valeurs vérifiées
 }
 
-
-
-
 /**
  * Vérifie les données d'entrée pour un nouveau trade
- * 
+ *
  * @param {*} inputs - Les données d'entrée à vérifier (email, pwd ).
  * @returns {Object} - Un objet contenant les erreurs éventuelles et les valeurs vérifiées.
  */
-export async function newEntryInputCheck(inputs, res ) {
+export async function newEntryInputCheck(inputs, res) {
   const inputsErrors = []; // Tableau pour stocker les erreurs d'entrée
   let verifiedValues = {}; // Objet pour stocker les valeurs vérifiées
   const {
@@ -158,18 +151,10 @@ export async function newEntryInputCheck(inputs, res ) {
     stock_id,
   ];
 
-  for (const value of mustBeNumbers) {
-    if (
-      isNaN(value) || // Vérifie si c'est un nombre
-      value < 0 || // Vérifie qu'il n'est pas négatif
-      value > 9999999 || // Vérifie qu'il n'a pas plus de 7 chiffres
-      value * 1000 - Math.trunc(value * 1000) > 0 // Vérifie qu'il n'a pas plus de 3 décimales
-    ) {
-      inputsErrors.push("Donnée numérique invalide");
-    }
+  const numberError = checkNumbers(mustBeNumbers);
+  if (numberError.length > 0) {
+    inputsErrors.push(numberError);
   }
-
-  
 
   //// verification de l'input "position" ////////////////////
   if (position !== "short" && position !== "long") {
@@ -204,19 +189,17 @@ export async function newEntryInputCheck(inputs, res ) {
 
   // verification de l'existance de la devise ////////////////////
   const currencies = await currenciesIds();
-   if (
-     currencies.find((currency) => currency.id === currency_id) ===
-     undefined
-   ) {
-     inputsErrors.push("Devise invalide");
-   }
+  if (
+    currencies.find((currency) => currency.id === currency_id) === undefined
+  ) {
+    inputsErrors.push("Devise invalide");
+  }
 
   // verification de l'existance de l'id du stock  ///////////////
   const stocks = await stocksIds();
-  if (stocks.find((stock) => stock.id === stock_id) === undefined){
-     inputsErrors.push("Support invalide");
+  if (stocks.find((stock) => stock.id === stock_id) === undefined) {
+    inputsErrors.push("Support invalide");
   }
-
 
   // Stockage des valeurs vérifiées dans l'objet
   verifiedValues = {
@@ -238,7 +221,6 @@ export async function newEntryInputCheck(inputs, res ) {
 
   return { inputsErrors, verifiedValues }; // Renvoi des erreurs et des valeurs vérifiées
 }
-
 
 /**
  * Vérifie les données d'entrée pour un re enter
@@ -274,15 +256,9 @@ export async function reEnterInputCheck(inputs, res) {
     stock_id,
   ];
 
-  for (const value of mustBeNumbers) {
-    if (
-      isNaN(value) || // Vérifie si c'est un nombre
-      value < 0 || // Vérifie qu'il n'est pas négatif
-      value > 9999999 || // Vérifie qu'il n'a pas plus de 7 chiffres
-      value * 1000 - Math.trunc(value * 1000) > 0 // Vérifie qu'il n'a pas plus de 3 décimales
-    ) {
-      inputsErrors.push("Donnée numérique invalide");
-    }
+  const numberError = checkNumbers(mustBeNumbers);
+  if (numberError.length > 0) {
+    inputsErrors.push(numberError);
   }
 
   // verification que le trade existe et est bien lié au stock et à l'user
@@ -293,12 +269,10 @@ export async function reEnterInputCheck(inputs, res) {
 
   //// verification de l'input "comment ////////////////////
   const cleanComment = comment.trim();
-  // Vérification de la longueur
   if (cleanComment.length > 255) {
     inputsErrors.push("commentaire non valide");
   }
 
-   
   // vérification du format de la date ////////////////////////////
   if (isNaN(new Date(date).getTime())) {
     inputsErrors.push("Date non valide");
@@ -321,10 +295,9 @@ export async function reEnterInputCheck(inputs, res) {
   return { inputsErrors, verifiedValues }; // Renvoi des erreurs et des valeurs vérifiées
 }
 
-
 /**
  * Vérifie les données d'entrée pour un exit
- * 
+ *
  * @param {*} inputs - Les données d'entrée à vérifier (email, pwd ).
  * @returns {Object} - Un objet contenant les erreurs éventuelles et les valeurs vérifiées.
  */
@@ -354,15 +327,9 @@ export async function exitInputCheck(inputs, res) {
     tax,
     trade_id,
   ];
-  for (const value of mustBeNumbers) {
-    if (
-      isNaN(value) || // Vérifie si c'est un nombre
-      value < 0 || // Vérifie qu'il n'est pas négatif
-      value > 9999999 || // Vérifie qu'il n'a pas plus de 7 chiffres
-      value * 1000 - Math.trunc(value * 1000) > 0 // Vérifie qu'il n'a pas plus de 3 décimales
-    ) {
-      inputsErrors.push("Donnée numérique invalide");
-    }
+  const numberError = checkNumbers(mustBeNumbers);
+  if (numberError.length > 0) {
+    inputsErrors.push(numberError);
   }
 
   // vérification concordance remains et quantity ////////////////////////////
@@ -372,7 +339,6 @@ export async function exitInputCheck(inputs, res) {
 
   //// verification de l'input "comment ////////////////////
   const cleanComment = comment.trim();
-  // Vérification de la longueur
   if (cleanComment.length > 255) {
     inputsErrors.push("commentaire non valide");
   }
@@ -404,7 +370,7 @@ export async function exitInputCheck(inputs, res) {
   return { inputsErrors, verifiedValues }; // Renvoi des erreurs et des valeurs vérifiées
 }
 
-export async function depositInputCheck (inputs, res){
+export async function depositInputCheck(inputs, res) {
   const inputsErrors = []; // Tableau pour stocker les erreurs d'entrée
   let verifiedValues = {}; // Objet pour stocker les valeurs vérifiées
   const userId = res.locals.datas.userId; //recupère l'id du user (recup d'aprés le token reçu et validé)
@@ -412,15 +378,9 @@ export async function depositInputCheck (inputs, res){
 
   // Vérification que les champs numériques sont bien numériques et non négatifs
   const mustBeNumbers = [portfolioId, amount];
-  for (const value of mustBeNumbers) {
-    if (
-      isNaN(value) || // Vérifie si c'est un nombre
-      value < 0 || // Vérifie qu'il n'est pas négatif
-      value > 9999999 || // Vérifie qu'il n'a pas plus de 7 chiffres
-      value * 1000 - Math.trunc(value * 1000) > 0 // Vérifie qu'il n'a pas plus de 3 décimales
-    ) {
-      inputsErrors.push("Donnée numérique invalide");
-    }
+  const numberError = checkNumbers(mustBeNumbers);
+  if (numberError.length > 0) {
+    inputsErrors.push(numberError);
   }
 
   // verification de l'action
@@ -441,12 +401,16 @@ export async function depositInputCheck (inputs, res){
   }
 
   // Stockage des valeurs vérifiées dans l'objet
-  verifiedValues = { portfolioId: +portfolioId, action: +action, amount: +amount };
+  verifiedValues = {
+    portfolioId: +portfolioId,
+    action: +action,
+    amount: +amount,
+  };
 
   return { inputsErrors, verifiedValues }; // Renvoi des erreurs et des valeurs vérifiées
 }
 
-export async function idleInputCheck (inputs, res){
+export async function idleInputCheck(inputs, res) {
   const inputsErrors = []; // Tableau pour stocker les erreurs d'entrée
   let verifiedValues = {}; // Objet pour stocker les valeurs vérifiées
   const userId = res.locals.datas.userId; //recupère l'id du user (recup d'aprés le token reçu et validé)
@@ -468,7 +432,13 @@ export async function idleInputCheck (inputs, res){
   return { inputsErrors, verifiedValues }; // Renvoi des erreurs et des valeurs vérifiées
 }
 
-export async function newPortfolioInputCheck (inputs, res){
+/**
+ * Vérifie les entrées pour la création d'un nouveau portfolio.
+ * @param {Object} inputs - Les données d'entrée.
+ * @param {Response} res - L'objet de la réponse HTTP.
+ * @returns {Object} - Erreurs d'entrée et valeurs vérifiées.
+ */
+export async function newPortfolioInputCheck(inputs, res) {
   const inputsErrors = []; // Tableau pour stocker les erreurs d'entrée
   let verifiedValues = {}; // Objet pour stocker les valeurs vérifiées
   const userId = res.locals.datas.userId; //recupère l'id du user (recup d'aprés le token reçu et validé)
@@ -476,28 +446,19 @@ export async function newPortfolioInputCheck (inputs, res){
 
   // Vérification que les champs numériques sont bien numériques et non négatifs
   const mustBeNumbers = [deposit, user_id, currency_id];
-  for (const value of mustBeNumbers) {
-    if (
-      isNaN(value) || // Vérifie si c'est un nombre
-      value < 0 || // Vérifie qu'il n'est pas négatif
-      value > 9999999 || // Vérifie qu'il n'a pas plus de 7 chiffres
-      value * 1000 - Math.trunc(value * 1000) > 0 // Vérifie qu'il n'a pas plus de 3 décimales
-    ) {
-      inputsErrors.push("Donnée numérique invalide");
-    }
+  const numberError = checkNumbers(mustBeNumbers);
+  if (numberError.length > 0) {
+    inputsErrors.push(numberError);
   }
- 
 
   //// verification de l'input "comment ////////////////////
   const cleanComment = comment.trim();
-  // Vérification de la longueur
   if (cleanComment.length > 255) {
     inputsErrors.push("commentaire non valide");
   }
 
   //// verification de l'input "title /////////////////////////////
   const cleanTitle = title.trim();
-  // Vérification de la longueur
   if (cleanTitle.length > 100) {
     inputsErrors.push("Nom non valide");
   }
@@ -508,18 +469,16 @@ export async function newPortfolioInputCheck (inputs, res){
   if (cleanStatus !== "active" && cleanStatus !== "idle") {
     inputsErrors.push("Statut non valide");
   }
- 
-  // verification de l'existance de la devise ////////////////////
+
+  // Vérification de l'existence de la devise
   const currencies = await currenciesIds();
-  if (
-    currencies.find((currency) => currency.id === currency_id) === undefined
-  ) {
+  if (!currencies.some((currency) => currency.id === currency_id)) {
     inputsErrors.push("Devise invalide");
   }
 
   // verifiction de l'identité de l'utilisateur ///////////////////
   if (user_id !== res.locals.datas.userId) {
-     inputsErrors.push("Requête invalide.");
+    inputsErrors.push("Requête invalide.");
   }
 
   // Stockage des valeurs vérifiées dans l'objet
