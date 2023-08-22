@@ -5,8 +5,27 @@ import {
   currenciesIds,
   stocksIds,
   verifyTrade,
- 
 } from "./controllerFunctionsUtils.js";
+
+function checkNumbers (arrayToCheck, inputsErrors){
+    for (const value of arrayToCheck) {
+      if (
+        isNaN(value) || // Vérifie si c'est un nombre
+        value < 0 || // Vérifie qu'il n'est pas négatif
+        value > 9999999 || // Vérifie qu'il n'a pas plus de 7 chiffres
+        value * 1000 - Math.trunc(value * 1000) > 0 // Vérifie qu'il n'a pas plus de 3 décimales
+      ) {
+        inputsErrors.push("Donnée numérique invalide");
+      }
+    }
+    return inputsErrors
+}
+
+
+
+
+
+
  
  
 /**
@@ -56,9 +75,6 @@ export async function signupInputCheck(inputs) {
 
   return { inputsErrors, verifiedValues }; // Renvoi des erreurs et des valeurs vérifiées
 }
-
-
-
 
 
 /**
@@ -152,6 +168,8 @@ export async function newEntryInputCheck(inputs, res ) {
       inputsErrors.push("Donnée numérique invalide");
     }
   }
+
+  
 
   //// verification de l'input "position" ////////////////////
   if (position !== "short" && position !== "long") {
@@ -468,6 +486,7 @@ export async function newPortfolioInputCheck (inputs, res){
       inputsErrors.push("Donnée numérique invalide");
     }
   }
+ 
 
   //// verification de l'input "comment ////////////////////
   const cleanComment = comment.trim();

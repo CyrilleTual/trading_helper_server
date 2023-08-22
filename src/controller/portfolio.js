@@ -129,7 +129,7 @@ export const idlePortfolio = async (req, res) => {
   if (inputsErrors.length > 0) {
     // il y a des erreurs
     res.status(400).json({
-      msg: "Requête incorrecte, création rejetée",
+      msg: "Requête incorrecte",
     });
     return;
   } else {
