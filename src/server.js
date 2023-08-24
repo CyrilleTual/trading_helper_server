@@ -32,6 +32,7 @@ app
   });
 //
 
+
 // Démarrage des tâches cron pour mettre à jour cotations et  taux de change
 startCronJobs();
         
