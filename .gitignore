@@ -2,4 +2,4 @@
 .env
 .DS_Store
 /archives
-/log
+/src/log
