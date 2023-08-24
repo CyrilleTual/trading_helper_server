@@ -60,7 +60,7 @@ export async function signupInputCheck(inputs) {
   // Vérification du mot de passe
   const cleanPwd = pwd.trim();
   // Vérification de la longueur
-  if (cleanPwd.length > 20 || cleanPwd.length < 8) {
+  if (cleanPwd.length > 30 || cleanPwd.length < 8) {
     inputsErrors.push("Mot de passe non valide");
   }
 
@@ -96,7 +96,7 @@ export async function signinInputCheck(inputs) {
   // Vérification du mot de passe
   const cleanPwd = pwd.trim();
   // Vérification de la longueur
-  if (cleanPwd.length > 20) {
+  if (cleanPwd.length > 30) {
     inputsErrors.push("Mot de passe non valide");
   }
 

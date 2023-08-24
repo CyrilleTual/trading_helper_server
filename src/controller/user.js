@@ -167,13 +167,15 @@ const logByRemenber = async (req, res) => {
 
     // Vérifie si le token est présent et non nul
     if (TOKEN === undefined || TOKEN === "null") {
-      res.status(404).json({ msg: "Token not found" });
+      res.status(401).json({ msg: "problème d'identification" });
       return;
     } else {
       // Vérifie la validité du token en utilisant la clé secrète
       jwt.verify(TOKEN, TOKEN_SECRET, async (err, decoded) => {
         if (err) {
-          res.status(401).json({ status: 401, msg: "Invalid token" });
+          res
+            .status(401)
+            .json({ status: 401, msg: "problème d'identification" });
           return;
         } else {
           // Vérifie la conformité du contenu du token avec les informations de la base de données ( en particulier role) et récupère les informations nécessaires pour le store front
@@ -198,7 +200,7 @@ const logByRemenber = async (req, res) => {
       });
     }
   } catch (error) {
-    res.status(401).json({ msg: "Problème d'identifiant" });
+    res.status(401).json({ msg: "problème d'identification" });
   }
 };
 
