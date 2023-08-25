@@ -109,13 +109,20 @@ export async function stocksIds () {
 }
 
 
+/**
+ * Vérifie si un trade est valide en fonction des paramètres fournis.
+ * @param {number} tradeId - L'identifiant du trade
+ * @param {number} stockId - L'identifiant du stock
+ * @param {number} userId - L'identifiant de l'utilisateur.
+ * @returns {Promise<object>} - Renvoie un objet  ou null s'il n'est pas valide.
+ */
 export async function verifyTrade (tradeId, stockId, userId ) {
     try {
         const query = `
-            SELECT trade.id FROM trade
-            JOIN portfolio 
-            ON trade.portfolio_id  = portfolio.id
-            WHERE trade.id = ? and stock_id = ? and portfolio.user_id = ?
+          SELECT trade.id FROM trade
+          JOIN portfolio 
+          ON trade.portfolio_id  = portfolio.id
+          WHERE trade.id = ? and stock_id = ? and portfolio.user_id = ?
         `;
         const result = (await Query.doByValues(query, { tradeId, stockId, userId  }))
         return result[0];

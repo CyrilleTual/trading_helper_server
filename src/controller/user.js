@@ -6,22 +6,6 @@ import { signupInputCheck, signinInputCheck } from "./inputsValidationUtils.js";
 const { TOKEN_SECRET } = process.env;
 const saltRounds = parseInt(process.env.SALT);
 
-// const checkToken = async (req, res) => {
-//   try {
-//     const query = "SELECT email, role FROM user WHERE id = ?";
-//     const [user] = await Query.findByValue(query, req.params.id);
-
-//     if (user) {
-//       const msg = "Utilisateur récupéré";
-//       res.status(200).json(success(msg, user));
-//     } else {
-//       const msg = "Pas de compte avec ces identifiants";
-//       res.status(200).json(success(msg));
-//     }
-//   } catch (error) {
-//     throw Error(error);
-//   }
-// };
 
 /**
  * Crée un nouvel utilisateur avec le statut de visiteur par défaut.
@@ -67,7 +51,6 @@ const signup = async (req, res) => {
         msg: "Erreur lors de la création de l'utilisateur",
         data: error,
       });
-      //throw Error(error);
     }
   }
 };
@@ -99,6 +82,8 @@ const signin = async (req, res) => {
         WHERE email = ?
       `;
       const [user] = await Query.doByValue(query1, email);
+
+      console.log ("user",user)
 
       if (!user || user.email !== email) {
         // Si l'utilisateur n'est pas trouvé ou les emails ne correspondent pas, renvoyer une réponse 401 Unauthorized

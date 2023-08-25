@@ -1,7 +1,7 @@
 import Query from "../model/query.js";
 
 /**
- * Alimente un portefeuille en ajoutant un montant de dépôt.
+ * Alimente un portefeuille en ajoutant un montant de dépôt (si négatif => retrait)
  * @param {number} idPort - L'ID du portefeuille auquel le montant doit être ajouté.
  * @param {number} amount - Le montant à ajouter au portefeuille.
  */

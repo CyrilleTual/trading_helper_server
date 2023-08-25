@@ -11,10 +11,11 @@ import Query from "../model/query.js";
 async function checkRole(id, role) {
   try {
     // Requête SQL pour obtenir le rôle de l'utilisateur
-    const query1 = `SELECT title as role
-                    FROM user 
-                    JOIN role ON role.id = user.role_id
-                    WHERE user.id = ?
+    const query1 = `
+      SELECT title as role
+      FROM user 
+      JOIN role ON role.id = user.role_id
+      WHERE user.id = ?
     `;
 
     // Exécute la requête et obtient le résultat
@@ -58,14 +59,9 @@ export const auth = async (req, res, next) => {
           // Vérifie le rôle de l'utilisateur en utilisant la fonction checkRole
           const isRoleValid = await checkRole(decoded.id, decoded.role);
           if (isRoleValid) {
-
-        
-
-            res.locals.datas = {userId:decoded.id, role:decoded.role} // sauvegarde du token dans reslocals
-
-
-            req.params.token = decoded; // Sauvegarde le token dans req.params
-            next(); // Passe au prochain middleware
+            res.locals.datas = { userId: decoded.id, role: decoded.role }; // sauvegarde des infos issues du token dans reslocals
+            //req.params.token = decoded; // Sauvegarde le token dans req.params
+            next(); // Passe à la suite
           } else {
             res.status(401).json({ status: 401, msg: "Forbidden" });
             return;
