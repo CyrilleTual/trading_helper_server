@@ -28,7 +28,7 @@ import { extractDatasAbc } from "./scrapeFromAbc.js";
       let currentPage = `page${index}`; // Création d'une nouvelle page pour chaque action
       currentPage = await browser.newPage();
 
-      // Extraction des données de la page à l'aide de la fonction extractDatasAbc
+      // Extraction des données de la page à l'aide de la fonction extractDatasAbc /////////////////////////
       const {
         before,
         last: lastQuote,

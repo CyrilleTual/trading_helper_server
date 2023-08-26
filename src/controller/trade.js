@@ -194,7 +194,7 @@ export const getByUser = async (req, res) => {
     // Obtenir les détails des trades actifs
     let activesTrades = await getDetailsOfOpensTrades(tradeList);
 
-    console.log("eee", activesTrades);
+ 
 
     // Renvoi de la liste des trades actifs avec leurs détails en réponse JSON
     res.status(200).json(activesTrades);
@@ -213,12 +213,19 @@ export const getByUser = async (req, res) => {
  * @param {*} res - Réponse HTTP.
  */
 export const newEntry = async (req, res) => {
+
+
   try {
- 
+
+
+
+
+
      const { inputsErrors, verifiedValues } = await newEntryInputCheck(req.body, res);
 
+
     if (inputsErrors.length > 0) {  // il y a des erreurs 
-      res.status(400).json({
+      res.status(403).json({
       msg: "Requête incorrecte, création rejetée",
       });
       return;
@@ -369,7 +376,7 @@ export const exitProcess = async (req, res) => {
 
   if (inputsErrors.length > 0) {
     // il y a des erreurs
-    res.status(400).json({
+    res.status(403).json({
       msg: "Requête incorrecte, création rejetée",
     });
     return;
@@ -455,7 +462,7 @@ export const reEnterProcess = async (req, res) => {
     const { inputsErrors, verifiedValues } = await reEnterInputCheck(req.body, res);
 
     if (inputsErrors.length > 0) {  // il y a des erreurs 
-      res.status(400).json({
+      res.status(403).json({
       msg: "Requête incorrecte, création rejetée",
       });
       return;

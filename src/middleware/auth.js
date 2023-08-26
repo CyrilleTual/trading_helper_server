@@ -41,6 +41,7 @@ export const auth = async (req, res, next) => {
   // Clef de déchiffrement du token récupérée depuis les variables d'environnement
   const { TOKEN_SECRET } = process.env;
 
+
   try {
     // Récupère le token depuis l'en-tête de la requête
     const TOKEN = req.headers["x-access-token"];
@@ -61,6 +62,7 @@ export const auth = async (req, res, next) => {
           if (isRoleValid) {
             res.locals.datas = { userId: decoded.id, role: decoded.role }; // sauvegarde des infos issues du token dans reslocals
             //req.params.token = decoded; // Sauvegarde le token dans req.params
+            
             next(); // Passe à la suite
           } else {
             res.status(401).json({ status: 401, msg: "Forbidden" });

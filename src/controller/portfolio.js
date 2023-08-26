@@ -19,7 +19,7 @@ export const newPortfolio = async (req, res) => {
 
     if (inputsErrors.length > 0) {
       // il y a des erreurs
-      res.status(400).json({
+      res.status(403).json({
         msg: "Requête incorrecte, création rejetée",
       });
       return;
@@ -71,7 +71,7 @@ export const deposit = async (req, res) => {
     );
     if (inputsErrors.length > 0) {
       // il y a des erreurs
-      res.status(400).json({
+      res.status(403).json({
         msg: "Requête incorrecte, création rejetée",
       });
       return;
@@ -128,7 +128,7 @@ export const idlePortfolio = async (req, res) => {
   const { inputsErrors, verifiedValues } = await idleInputCheck(req.body, res);
   if (inputsErrors.length > 0) {
     // il y a des erreurs
-    res.status(400).json({
+    res.status(403).json({
       msg: "Requête incorrecte",
     });
     return;

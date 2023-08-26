@@ -67,7 +67,7 @@ const signin = async (req, res) => {
 
   if (inputsErrors.length > 0) {
     // Si des erreurs d'entrée sont présentes, renvoyer une réponse 400 Bad Request
-    res.status(400).json({
+    res.status(403).json({
       msg: "Requête incorrecte, action rejetée",
     });
     return;
@@ -83,7 +83,6 @@ const signin = async (req, res) => {
       `;
       const [user] = await Query.doByValue(query1, email);
 
-      console.log ("user",user)
 
       if (!user || user.email !== email) {
         // Si l'utilisateur n'est pas trouvé ou les emails ne correspondent pas, renvoyer une réponse 401 Unauthorized

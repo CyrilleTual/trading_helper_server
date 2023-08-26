@@ -44,5 +44,6 @@ export async function extractDatasAbc(currentPage, ticker, place) {
   }
   // formatage du cours précédent
   const before = +searchValue2.replace(",", ".");
+
   return { before, last, currency };
 }

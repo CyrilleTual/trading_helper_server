@@ -13,13 +13,21 @@ import {
  * @returns {string} - Message d'erreur ou chaîne vide.
  */
 function checkNumbers(arrayToCheck) {
+
+ 
   for (const value of arrayToCheck) {
     if (
       isNaN(value) || // Vérifie si c'est un nombre
       value < 0 || // Vérifie qu'il n'est pas négatif
-      value > 9999999 || // Vérifie qu'il n'a pas plus de 7 chiffres
-      value * 1000 - Math.trunc(value * 1000) > 0 // Vérifie qu'il n'a pas plus de 3 décimales
+      value > 9999999 //|| // Vérifie qu'il n'a pas plus de 7 chiffres
+     // value * 1000 - Math.trunc(value * 1000) > 0 // Vérifie qu'il n'a pas plus de 3 décimales
     ) {
+      // console.log(
+      //   "probleme : ",
+      //   value,
+      //   value * 1000,
+      //   Math.trunc(value * 1000), (value * 1000 - Math.trunc(value * 1000))
+      // );
       return "Donnée numérique invalide";
     }
   }
@@ -151,10 +159,15 @@ export async function newEntryInputCheck(inputs, res) {
     stock_id,
   ];
 
+
+
+
+
   const numberError = checkNumbers(mustBeNumbers);
   if (numberError.length > 0) {
     inputsErrors.push(numberError);
   }
+
 
   //// verification de l'input "position" ////////////////////
   if (position !== "short" && position !== "long") {
