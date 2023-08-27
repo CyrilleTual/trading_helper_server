@@ -17,9 +17,9 @@ function checkNumbers(arrayToCheck) {
  
   for (const value of arrayToCheck) {
     if (
-      isNaN(value) || // Vérifie si c'est un nombre
-      value < 0 || // Vérifie qu'il n'est pas négatif
-      value > 9999999 //|| // Vérifie qu'il n'a pas plus de 7 chiffres
+      isNaN(+value) || // Vérifie si c'est un nombre
+      +value < 0 || // Vérifie qu'il n'est pas négatif
+      +value > 9999999 //|| // Vérifie qu'il n'a pas plus de 7 chiffres
      // value * 1000 - Math.trunc(value * 1000) > 0 // Vérifie qu'il n'a pas plus de 3 décimales
     ) {
       // console.log(
