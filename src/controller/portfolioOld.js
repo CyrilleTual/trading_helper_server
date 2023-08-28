@@ -24,11 +24,11 @@ export const newPortfolio = async (req, res) => {
       });
       return;
     } else {
-      const { title, comment, deposit, user_id, currency_abbr, status } =
+      const { title, comment, deposit, user_id, currency_id, status } =
         verifiedValues;
       // Requête d'insertion pour créer un nouveau portefeuille dans la base de données
       const query = `
-        INSERT INTO portfolio (title, comment, user_id,currency_abbr, status  ) 
+        INSERT INTO portfolio (title, comment, user_id,currency_id, status  ) 
         VALUES (?,?,?,?,?)
       `;
 
@@ -37,7 +37,7 @@ export const newPortfolio = async (req, res) => {
         title,
         comment,
         user_id,
-        currency_abbr,
+        currency_id,
         status,
       });
 
@@ -105,9 +105,9 @@ async function portfoliosByUser(userId) {
 
   // Requête SQL pour récupérer les informations des portefeuilles d'un utilisateur donné
   const query = `
-    SELECT portfolio.id, portfolio.title, portfolio.comment, currency.abbr as currencyAbbr, currency.title as currency, currency.symbol as symbol, currency.abbr as abbr
+    SELECT portfolio.id, portfolio.title, portfolio.comment, currency.id as currencyId, currency.title as currency, currency.symbol as symbol, currency.abbr as abbr
     FROM portfolio
-    JOIN currency ON portfolio.currency_abbr = currency.abbr
+    JOIN currency ON portfolio.currency_id = currency.id
     WHERE user_id = ?
   `;
 
@@ -189,7 +189,7 @@ const portfolioInfos = async (id) => {
 
   // Requète  SQL pour recupérer les information sur un portfolio par son id
   const query = `
-   SELECT title, comment, user_id as userId, currency_abbr as currencyAbbr
+   SELECT title, comment, user_id as userId, currency_id as currencyId 
    FROM portfolio 
    WHERE  id=?
   `;
@@ -548,13 +548,13 @@ async function portfolioDashboard(portfolioId) {
     totalBalance: 0, // Solde total du portefeuille (actifs + liquidités)
     totalPerf: 0, // Performance totale du portefeuille (solde total - crédit initial)
     totalPerfPc: 0, // Pourcentage de la performance totale par rapport au crédit initial
-    currencyAbbr: "", // Identifiant de la devise du portefeuille
+    currencyId: 0, // Identifiant de la devise du portefeuille
   };
 
   // set de la devise
-  portfolioDash.currencyAbbr = (
+  portfolioDash.currencyId = (
     await portfolioInfos(portfolioDash.id)
-  ).currencyAbbr;
+  ).currencyId;
 
   // initial credit
   portfolioDash.initCredit = +(await initial(portfolioDash.id));
@@ -614,14 +614,13 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
 
   // On récupère les différentes devises de l'application
   const currenciesArray = await appCurrencies();
-
-
   // On récupère l'abbréviation de la devise de base de l'application (appCurrency)
-  const appCurrencyAbbr = process.env.APP_CURRENCY_ID;
-
+  const appCurrencyAbbr = currenciesArray.find(
+    (el) => el.id === +process.env.APP_CURRENCY_ID
+  ).abbr;
   // On récupère le symbole de la devise de base de l'application (appCurrency)
   const appCurrencySymbol = currenciesArray.find(
-    (el) => el.abbr === process.env.APP_CURRENCY_ID
+    (el) => el.id === +process.env.APP_CURRENCY_ID
   ).symbol;
 
   // On récupère les informations sur les taux de conversion
@@ -631,6 +630,7 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
     // Initialisation du tableau de bord du portefeuille global
     const portfolioDash = {
       userId: +req.params.userId,
+      currencyId: +process.env.APP_CURRENCY_ID,
       currencyAbbr: appCurrencyAbbr,
       currencySymbol: appCurrencySymbol,
       currentPv: 0,
@@ -650,22 +650,24 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
       activeK: 0,
     };
 
-  
     // On récupère la liste des portefeuilles de l'utilisateur
     const portfolios = await portfoliosByUser(portfolioDash.userId);
-
 
     // Pour chaque portefeuille on va chercher le tableau de bord et alimenter le tableau de bord global
     for await (const portfolio of portfolios) {
       const dash = await portfolioDashboard(portfolio.id);
 
+      // On récupère l'abbréviation de la devise du tableau de bord
+      const dashboardCurrencyAbbr = currenciesArray.find(
+        (el) => el.id === +dash.currencyId
+      ).abbr;
+
       // À partir de la devise de l'application et de celle du portefeuille, on cherche le taux de change
       const xRate = appForex.find(
         (el) =>
           el.from_currency === appCurrencyAbbr &&
-          el.to_currency === dash.currencyAbbr
+          el.to_currency === dashboardCurrencyAbbr
       ).rate;
-
 
       // Mise à jour des valeurs du tableau de bord global avec les valeurs du portefeuille en cours
       portfolioDash.currentPv = +(
@@ -741,8 +743,6 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
       (portfolioDash.totalPerf / portfolioDash.initCredit) *
       100
     ).toFixed(2);
-
-
 
     // Envoi du tableau de bord global en tant que réponse JSON
     res.status(200).json(portfolioDash);
