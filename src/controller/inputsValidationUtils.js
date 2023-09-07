@@ -426,19 +426,22 @@ export async function idleInputCheck(inputs, res) {
   const inputsErrors = []; // Tableau pour stocker les erreurs d'entrée
   let verifiedValues = {}; // Objet pour stocker les valeurs vérifiées
   const userId = res.locals.datas.userId; //recupère l'id du user (recup d'aprés le token reçu et validé)
-  const { portfolioId } = inputs;
+
+  const { id, status } = inputs;
 
   // verification que le portfolio appartient bien à l'user ////////
   const portfoliosOfUser = await portfoliosListByUser(userId); // recupération de la liste des portofolios
+
   if (
-    portfoliosOfUser.find((portfolio) => portfolio.id === portfolioId) ===
+    portfoliosOfUser.find((portfolio) => portfolio.id === +id) ===
     undefined
   ) {
     inputsErrors.push("Portefeuille invalide");
   }
   // Stockage des valeurs vérifiées dans l'objet
   verifiedValues = {
-    portfolioId: +portfolioId,
+    idPortfolio: +id,
+    status: status
   };
 
   return { inputsErrors, verifiedValues }; // Renvoi des erreurs et des valeurs vérifiées

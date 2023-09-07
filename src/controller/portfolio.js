@@ -105,7 +105,7 @@ async function portfoliosByUser(userId) {
 
   // Requête SQL pour récupérer les informations des portefeuilles d'un utilisateur donné
   const query = `
-    SELECT portfolio.id, portfolio.title, portfolio.comment, currency.abbr as currencyAbbr, currency.title as currency, currency.symbol as symbol, currency.abbr as abbr
+    SELECT portfolio.id, portfolio.title, portfolio.comment, currency.abbr as currencyAbbr, currency.title as currency, currency.symbol as symbol, currency.abbr as abbr, portfolio.status as status
     FROM portfolio
     JOIN currency ON portfolio.currency_abbr = currency.abbr
     WHERE user_id = ?
@@ -125,7 +125,9 @@ async function portfoliosByUser(userId) {
  * @param {Response} res - Réponse HTTP.
  */
 export const idlePortfolio = async (req, res) => {
+
   const { inputsErrors, verifiedValues } = await idleInputCheck(req.body, res);
+
   if (inputsErrors.length > 0) {
     // il y a des erreurs
     res.status(403).json({
@@ -134,19 +136,20 @@ export const idlePortfolio = async (req, res) => {
     return;
   } else {
     // Récupération de l'identifiant du portefeuille à rendre inactif depuis les paramètres de la requête
-    const { portfolioId } = verifiedValues;
+    const { idPortfolio, status } = verifiedValues;
+    const newStatus = status === 'active' ? 'idle' : 'active';
     try {
       // Requête SQL pour mettre à jour le statut du portefeuille en 'idle'
       const query = `
         UPDATE portfolio 
-        SET status='idle' 
+        SET status=?
         WHERE id =? 
       `;
       // Exécution de la requête pour marquer le portefeuille comme inactif
-      await Query.doByValue(query, portfolioId);
+      await Query.doByValues(query, {newStatus, idPortfolio});
 
       // Réponse indiquant que le portefeuille a été rendu inactif avec succès
-      res.status(200).json({ msg: "Portefeuille rendu inactif avec succès." });
+      res.status(200).json({ msg: "statut modifé avec succès." });
     } catch (error) {
       // En cas d'erreur, renvoyer un message d'erreur dans la réponse
       res.json({ msg: error });
