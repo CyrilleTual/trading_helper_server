@@ -3,3 +3,4 @@
 .DS_Store
 /archives
 /src/log
+fly.toml
