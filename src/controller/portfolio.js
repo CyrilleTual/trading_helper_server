@@ -617,11 +617,11 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
 
 
   // On récupère l'abbréviation de la devise de base de l'application (appCurrency)
-  const appCurrencyAbbr = process.env.APP_CURRENCY_ID;
+  const appCurrencyAbbr = global.appCurrency;
 
   // On récupère le symbole de la devise de base de l'application (appCurrency)
   const appCurrencySymbol = currenciesArray.find(
-    (el) => el.abbr === process.env.APP_CURRENCY_ID
+    (el) => el.abbr === global.appCurrency
   ).symbol;
 
   // On récupère les informations sur les taux de conversion
