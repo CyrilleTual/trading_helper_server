@@ -4,7 +4,7 @@ import { myWorker } from "./worker.js";
 
 // recherche la différence actualisation sauf we
 
-export async function checkIfUpdNeeded(req, res) {
+export async function checkIfUpdNeeded() {
   // recherche la  date actualisation des trades
   const query = `
     SELECT updDate
@@ -20,11 +20,7 @@ export async function checkIfUpdNeeded(req, res) {
     // si maj depuis + de 15 min -> on refait maj des cours
     if (delta > 15) {
       myWorker();
-
-
     }
- 
-    res.status(200).json(delta);
   }
 
   // recherche de la dernière maj des taux de change
@@ -43,14 +39,10 @@ export async function checkIfUpdNeeded(req, res) {
   });
 
   const lastUpdForex = new Date(result[0].date);
-   const deltaFx = (new Date() - lastUpdForex) / 60000;
-   // si maj depuis + de 15 min -> on refait maj des cours
-   if (deltaFx > 1) {
-     console.log ("maj forex")
-     updCurrencies();
-   }
-
-  
-
-  // date de maj
+  const deltaFx = (new Date() - lastUpdForex) / 60000;
+  // si maj depuis + de 15 min -> on refait maj des cours
+  if (deltaFx > 15) {
+    console.log("maj forex");
+    updCurrencies();
+  }
 }

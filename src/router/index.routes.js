@@ -21,7 +21,6 @@ router.use(`${apiUrl}/portfolios`, auth, portfolio_routes);
 router.use(`${apiUrl}/stocks`, auth, stock_route);
 router.use(`${apiUrl}/strategies`, auth, strategies_routes);
 router.use(`${apiUrl}/test`, auth, test_routes);
-router.use(`${apiUrl}/testo`, checkIfUpdNeeded);
 router.use(`${apiUrl}/trades`, auth, trades_routes);
 router.use(`${apiUrl}/users`, users_routes);
 
