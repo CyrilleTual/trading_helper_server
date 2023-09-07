@@ -137,7 +137,7 @@ export async function newEntryInputCheck(inputs, res) {
     comment,
     strategy_id,
     portfolio_id,
-  currency_abbr,
+    currency_id,
     lastQuote,
     beforeQuote,
     position,
@@ -155,6 +155,7 @@ export async function newEntryInputCheck(inputs, res) {
     lastQuote,
     portfolio_id,
     strategy_id,
+    currency_id,
     stock_id,
   ];
 
@@ -202,7 +203,7 @@ export async function newEntryInputCheck(inputs, res) {
   // verification de l'existance de la devise ////////////////////
   const currencies = await currenciesIds();
   if (
-    currencies.find((currency) => currency.abbr === currency_abbr) === undefined
+    currencies.find((currency) => currency.id === currency_id) === undefined
   ) {
     inputsErrors.push("Devise invalide");
   }
@@ -225,7 +226,7 @@ export async function newEntryInputCheck(inputs, res) {
     comment: cleanComment,
     strategy_id: +strategy_id,
     portfolio_id: +portfolio_id,
-    currency_abbr: currency_abbr,
+    currency_id: +currency_id,
     lastQuote: +lastQuote,
     beforeQuote: +beforeQuote,
     position: position,
@@ -454,10 +455,10 @@ export async function newPortfolioInputCheck(inputs, res) {
   const inputsErrors = []; // Tableau pour stocker les erreurs d'entrée
   let verifiedValues = {}; // Objet pour stocker les valeurs vérifiées
   const userId = res.locals.datas.userId; //recupère l'id du user (recup d'aprés le token reçu et validé)
-  const { title, comment, deposit, user_id, currency_abbr, status } = inputs;
+  const { title, comment, deposit, user_id, currency_id, status } = inputs;
 
   // Vérification que les champs numériques sont bien numériques et non négatifs
-  const mustBeNumbers = [deposit, user_id, currency_abbr];
+  const mustBeNumbers = [deposit, user_id, currency_id];
   const numberError = checkNumbers(mustBeNumbers);
   if (numberError.length > 0) {
     inputsErrors.push(numberError);
@@ -484,7 +485,7 @@ export async function newPortfolioInputCheck(inputs, res) {
 
   // Vérification de l'existence de la devise
   const currencies = await currenciesIds();
-  if (!currencies.some((currency) => currency.abbr === currency_abbr)) {
+  if (!currencies.some((currency) => currency.id === currency_id)) {
     inputsErrors.push("Devise invalide");
   }
 
@@ -499,7 +500,7 @@ export async function newPortfolioInputCheck(inputs, res) {
     comment: cleanComment,
     deposit: +deposit,
     user_id,
-    currency_abbr,
+    currency_id,
     status: cleanStatus,
   };
 

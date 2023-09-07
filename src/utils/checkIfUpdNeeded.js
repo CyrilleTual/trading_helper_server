@@ -1,9 +1,10 @@
 import Query from "../model/query.js";
+import { updCurrencies } from "./forexUpd.js";
 import { myWorker } from "./worker.js";
 
 // recherche la différence actualisation sauf we
 
-export async function checkIfUpdNeeded(req, res) {
+export async function checkIfUpdNeeded() {
   // recherche la  date actualisation des trades
   const query = `
     SELECT updDate
@@ -20,17 +21,28 @@ export async function checkIfUpdNeeded(req, res) {
     if (delta > 15) {
       myWorker();
     }
-    console.log(delta);
-    res.status(200).json(delta);
   }
 
   // recherche de la dernière maj des taux de change
   // Récupère l'ID de la devise de base de l'application
-  const appCurrencyId = +process.env.APP_CURRENCY_ID;
+  //const appCurrencyId = process.env.APP_CURRENCY_ID;
+  const appCurrencyId = global.appCurrency;
 
-  // date de maj 
+  // Récupère l'heure de la dernière maj forex
 
+  const queryforex = `
+    SELECT date FROM forex 
+    WHERE from_currency = ?
+    `;
+  const [result] = await Query.doByValues(queryforex, {
+    appCurrencyId,
+  });
 
-
-
+  const lastUpdForex = new Date(result[0].date);
+  const deltaFx = (new Date() - lastUpdForex) / 60000;
+  // si maj depuis + de 15 min -> on refait maj des cours
+  if (deltaFx > 15) {
+    console.log("maj forex");
+    updCurrencies();
+  }
 }

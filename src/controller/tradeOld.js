@@ -241,7 +241,7 @@ export const newEntry = async (req, res) => {
       comment,
       strategy_id,
       portfolio_id,
-      currency_abbr,
+      currency_id,
       lastQuote,
       beforeQuote,
       position,
@@ -251,7 +251,7 @@ export const newEntry = async (req, res) => {
     let dateToSet = new Date();
 
     // Crée le nouveau trade et récupère son ID
-    const query = `INSERT INTO trade ( stock_id, position, currentTarget, currentStop, comment, firstEnter, strategy_id ,  portfolio_id ,  currency_abbr ) 
+    const query = `INSERT INTO trade ( stock_id, position, currentTarget, currentStop, comment, firstEnter, strategy_id ,  portfolio_id ,  currency_id ) 
         VALUES (?,?,?,?,?,?,?,?,?)`;
     const [result] = await Query.doByValues(query, {
       stock_id,
@@ -262,7 +262,7 @@ export const newEntry = async (req, res) => {
       dateToSet,
       strategy_id,
       portfolio_id,
-      currency_abbr,
+      currency_id,
     });
     const idTrade = result.insertId;
 

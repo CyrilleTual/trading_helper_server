@@ -3,6 +3,4 @@
 .DS_Store
 /archives
 /src/log
-Dockerfile
-.gitignore
 fly.toml

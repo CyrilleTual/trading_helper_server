@@ -3,7 +3,7 @@ import { appCurrencies } from "../controller/currency.js";
 import Query from "../model/query.js";
 
 // Récupère l'ID de la devise de base de l'application
-const appCurrencyId = +process.env.APP_CURRENCY_ID;
+const appCurrencyId = global.appCurrency;
 
 /**
  * Obtient les taux de change à partir d'une API en ligne.
@@ -108,9 +108,10 @@ export async function updCurrencies() {
     // tableau des devises de l'application
     const currenciesArray = await appCurrencies();
     // Récupère l'abbréviation de la devise de base pour configurer from_currency
-    const from_currency = currenciesArray.find(
-      (el) => el.id === appCurrencyId
-    ).abbr;
+    // const from_currency = currenciesArray.find(
+    //   (el) => el.id === appCurrencyId
+    // ).abbr;
+    const from_currency = global.appCurrency;
 
     // Parcours les devises et récupère les taux de change
     for (const elt of currenciesArray) {

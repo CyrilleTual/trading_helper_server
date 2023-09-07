@@ -8,6 +8,8 @@ import rfs from "rotating-file-stream"; // Flux de fichiers rotatifs pour les lo
 
 import { LOCAL_PORT } from "./config/const.js"; //  variables d'environnement
 import { startCronJobs } from "./utils/cronJobs.js"; // pour démarrer les tâches planifiées (cron jobs)
+import { checkAppCurrenccy } from "./utils/appCurrency.js";
+import { checkIfUpdNeeded } from "./utils/checkIfUpdNeeded.js";
 
 const PORT = process.env.PORT || LOCAL_PORT;
 const app = express();
@@ -17,6 +19,9 @@ const accessLogStream = rfs.createStream("access.log", {
   interval: "1d", // rotate daily
   path: "./src/log",
 });
+
+// recupération de le devise de l'application  et on la set comme variable globale
+global.appCurrency = await checkAppCurrenccy() || "EUR" ;
 
 // Configuration de l'application Express
 app
@@ -32,7 +37,8 @@ app
   });
 //
 
-
+// reagrde si maj immediate nécessaire
+checkIfUpdNeeded();
 // Démarrage des tâches cron pour mettre à jour cotations et  taux de change
 startCronJobs();
         
