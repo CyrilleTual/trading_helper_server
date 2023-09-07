@@ -105,7 +105,7 @@ async function portfoliosByUser(userId) {
 
   // Requête SQL pour récupérer les informations des portefeuilles d'un utilisateur donné
   const query = `
-    SELECT portfolio.id, portfolio.title, portfolio.comment, currency.id as currencyId, currency.title as currency, currency.symbol as symbol, currency.abbr as abbr
+    SELECT portfolio.id, portfolio.title, portfolio.comment, currency.id as currencyId, currency.title as currency, currency.symbol as symbol, currency.abbr as abbr, status
     FROM portfolio
     JOIN currency ON portfolio.currency_id = currency.id
     WHERE user_id = ?
@@ -125,7 +125,8 @@ async function portfoliosByUser(userId) {
  * @param {Response} res - Réponse HTTP.
  */
 export const idlePortfolio = async (req, res) => {
-  const { inputsErrors, verifiedValues } = await idleInputCheck(req.body, res);
+
+  const { inputsErrors, verifiedValues } = await idleInputCheck(req.params, res);
   if (inputsErrors.length > 0) {
     // il y a des erreurs
     res.status(403).json({

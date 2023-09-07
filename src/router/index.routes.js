@@ -9,6 +9,7 @@ import trades_routes from "./routes/trades.routes.js";
 import users_routes from "./routes/users.routes.js";
 
 import { auth } from "../middleware/auth.js";
+import { checkIfUpdNeeded } from "../utils/checkIfUpdNeeded.js";
 
 const router = Router();
 const apiUrl = process.env.API_BASE_URL;
@@ -20,6 +21,7 @@ router.use(`${apiUrl}/portfolios`, auth, portfolio_routes);
 router.use(`${apiUrl}/stocks`, auth, stock_route);
 router.use(`${apiUrl}/strategies`, auth, strategies_routes);
 router.use(`${apiUrl}/test`, auth, test_routes);
+router.use(`${apiUrl}/testo`, checkIfUpdNeeded);
 router.use(`${apiUrl}/trades`, auth, trades_routes);
 router.use(`${apiUrl}/users`, users_routes);
 

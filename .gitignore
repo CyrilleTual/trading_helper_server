@@ -5,3 +5,4 @@
 /src/log
 Dockerfile
 .gitignore
+fly.toml

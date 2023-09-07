@@ -19,7 +19,7 @@ function checkNumbers(arrayToCheck) {
     if (
       isNaN(+value) || // Vérifie si c'est un nombre
       +value < 0 || // Vérifie qu'il n'est pas négatif
-      +value > 9999999 //|| // Vérifie qu'il n'a pas plus de 7 chiffres
+      +value > 9999999 //|| // Vérifie qu'il n'a pas plus de 7 chiffresconsole
      // value * 1000 - Math.trunc(value * 1000) > 0 // Vérifie qu'il n'a pas plus de 3 décimales
     ) {
       // console.log(
@@ -159,15 +159,10 @@ export async function newEntryInputCheck(inputs, res) {
     stock_id,
   ];
 
-
-
-
-
   const numberError = checkNumbers(mustBeNumbers);
   if (numberError.length > 0) {
     inputsErrors.push(numberError);
   }
-
 
   //// verification de l'input "position" ////////////////////
   if (position !== "short" && position !== "long") {
@@ -427,7 +422,8 @@ export async function idleInputCheck(inputs, res) {
   const inputsErrors = []; // Tableau pour stocker les erreurs d'entrée
   let verifiedValues = {}; // Objet pour stocker les valeurs vérifiées
   const userId = res.locals.datas.userId; //recupère l'id du user (recup d'aprés le token reçu et validé)
-  const { portfolioId } = inputs;
+ 
+  const  portfolioId  = +inputs.idPortfolio;
 
   // verification que le portfolio appartient bien à l'user ////////
   const portfoliosOfUser = await portfoliosListByUser(userId); // recupération de la liste des portofolios
