@@ -14,6 +14,7 @@ export async function  scrapeLastInfos(ticker, place) {
     // Lance une instance de navigateur Puppeteer
     const browser = await puppeteer.launch({
       headless: "new", // Mode sans interface utilisateur
+      executablePath: "/usr/bin/chromium-browser",  ///// pour version docker à enlever pour version locale
       args: ["--no-sandbox", "--disable-setuid-sandbox"], ///// attention pour railway mais faille de sécurité
     });
     // Crée une nouvelle page dans le navigateur
