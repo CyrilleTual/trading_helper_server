@@ -1,9 +1,19 @@
 import mysql from "mysql2/promise";
 
 // Importation des constantes de configuration de la base de données
-import { DB_HOST, DB_NAME, DB_USER, DB_PWD, DB_PORT } from "./const.js";
+import {
+  DB_HOST,
+  DB_NAME,
+  DB_USER,
+  DB_PWD,
+  DB_PORT,
+  DB_CONNECTION_SSL,
+} from "./const.js";
 
-// Création d'un pool de connexions à la base de données 
+let sslValue; 
+DB_CONNECTION_SSL === "SSL" ?  sslValue = true : sslValue = false;
+
+// Création d'un pool de connexions à la base de données sans SSL
 const pool = mysql.createPool({
   host: DB_HOST,
   database: DB_NAME,
@@ -18,9 +28,8 @@ const pool = mysql.createPool({
   enableKeepAlive: true, // Activer la surveillance des connexions actives
   keepAliveInitialDelay: 0, // Délai initial pour la surveillance des connexions actives
   ssl: {
-    rejectUnauthorized: true,  // pour planet scale -> ssl 
+    rejectUnauthorized: sslValue,  // pour planet scale -> ssl
   },
 });
-
 
 export { pool };  
