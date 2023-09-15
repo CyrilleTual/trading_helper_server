@@ -73,6 +73,7 @@ const signin = async (req, res) => {
     return;
   } else { // les inputs sont valides
     const { email, pwd } = verifiedValues;
+
     try {
       // Récupération des informations de l'utilisateur depuis la base de données
       const query1 = `
@@ -82,7 +83,6 @@ const signin = async (req, res) => {
         WHERE email = ?
       `;
       const [user] = await Query.doByValue(query1, email);
-
 
       if (!user || user.email !== email) {
         // Si l'utilisateur n'est pas trouvé ou les emails ne correspondent pas, renvoyer une réponse 401 Unauthorized

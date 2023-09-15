@@ -618,7 +618,6 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
   // On récupère les différentes devises de l'application
   const currenciesArray = await appCurrencies();
 
-
   // On récupère l'abbréviation de la devise de base de l'application (appCurrency)
   const appCurrencyAbbr = global.appCurrency;
 
@@ -632,8 +631,10 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
 
   try {
     // Initialisation du tableau de bord du portefeuille global
+    
     const portfolioDash = {
-      userId: +req.params.userId,
+      //userId: +req.params.userId,
+      userId: +res.locals.datas.userId, // permet de les visitors
       currencyAbbr: appCurrencyAbbr,
       currencySymbol: appCurrencySymbol,
       currentPv: 0,

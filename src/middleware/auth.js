@@ -42,9 +42,11 @@ export const auth = async (req, res, next) => {
   const { TOKEN_SECRET } = process.env;
 
 
+
   try {
     // Récupère le token depuis l'en-tête de la requête
     const TOKEN = req.headers["x-access-token"];
+    
 
     // Vérifie si le token est présent et non nul
     if (TOKEN === undefined || TOKEN === "null") {
@@ -60,8 +62,17 @@ export const auth = async (req, res, next) => {
           // Vérifie le rôle de l'utilisateur en utilisant la fonction checkRole
           const isRoleValid = await checkRole(decoded.id, decoded.role);
           if (isRoleValid) {
-            res.locals.datas = { userId: decoded.id, role: decoded.role }; // sauvegarde des infos issues du token dans reslocals
-            //req.params.token = decoded; // Sauvegarde le token dans req.params
+            
+
+            // verifie si statut === visitor et recupère l'user de référence le cas échéant 
+
+            if (decoded.role.substring(0, 7) === "visitor") {
+               
+              const refUserId = (+decoded.role.substring(8));
+              res.locals.datas = { userId: refUserId, role: decoded.role }; // sauvegarde des infos issues du token dans reslocals
+            }else{
+              res.locals.datas = { userId: decoded.id, role: decoded.role }; // sauvegarde des infos issues du token dans reslocals
+            }
             
             next(); // Passe à la suite
           } else {
