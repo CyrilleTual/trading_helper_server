@@ -26,7 +26,7 @@ export function startCronJobs() {
       true,
       "Europe/Paris",
       null,
-      // true // premier execution immédiate
+      //true // premier execution immédiate
     )
   );
 

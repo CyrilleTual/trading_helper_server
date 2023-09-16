@@ -1,7 +1,7 @@
 import { parentPort } from "worker_threads";
 import Query from "../model/query.js";
-import puppeteer from "puppeteer";
 import { extractDatasAbc } from "./scrapeFromAbc.js";
+import { launchBrowser } from "./launchBrowser.js";
 
 
 (async () => {
@@ -12,13 +12,9 @@ import { extractDatasAbc } from "./scrapeFromAbc.js";
     FROM stock
     INNER JOIN activeStock ON stock.id = activeStock.stock_id
     `;
-    const activeStocks = await Query.find(query);
+    const activeStocks = await Query.find(query)
 
-    // Lancement d'une instance de navigateur en mode "headless"
-    const browser = await puppeteer.launch({
-      headless: "new", // lance un navigateur sans UI
-      args: ["--no-sandbox", "--disable-setuid-sandbox"], ///// attention pour railway mais faille de sécurité
-    });
+    const browser = await launchBrowser();
 
     let index = 0;
     // Parcours des actions actives pour extraire et mettre à jour les données
