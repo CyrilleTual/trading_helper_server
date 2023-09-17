@@ -20,11 +20,12 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true\
     DB_USER=kugmzatcsgm4zhajqjsq\
     DB_PWD='pscale_pw_mVdMn6HIvmOqfRZBeVqpe9J6HKHY2dDvlc2FjupenLe'\
     DB_PORT=3306\
-    DB_CONNECTION_SSL=NO_SSL\
+    DB_CONNECTION_SSL=SSL\
     TOKEN_SECRET='xF"]U,;Fv@0^~Yvy:zoM[NW121*pgH'\
     SALT=10\
     API_BASE_URL='/api.tradingtool.com/v1'\
-    PORT=9002
+    PORT=9002\
+    RUN_IN_DOCKER=DOCKER
 
 COPY package.json package-lock.json ./
 RUN npm install
@@ -34,6 +35,3 @@ COPY . .
 EXPOSE 9002
 
 CMD ["node", "/app/src/server.js"]
-
-
- 
