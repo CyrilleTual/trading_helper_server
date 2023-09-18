@@ -1,5 +1,5 @@
 import Query from "../model/query.js";
-import { newEntryInputCheck, reEnterInputCheck, exitInputCheck }  from "./inputsValidationUtils.js"
+import { newEntryInputCheck, reEnterInputCheck, exitInputCheck, adjustmentInputCheck }  from "./inputsValidationUtils.js"
 
 
  /**
@@ -520,6 +520,83 @@ export const reEnterProcess = async (req, res) => {
     res.json({ msg: error });
   }
 };
+
+/**
+ * Re-Enter dans un trade en cours
+ * @param {*} req - Requête HTTP.
+ * @param {*} res - Réponse HTTP.
+ */
+export const adjustmentProcess = async (req, res) => {
+
+  try {
+
+
+    const { inputsErrors, verifiedValues } = await adjustmentInputCheck(
+      req.body,
+      res
+    );
+
+
+    if (inputsErrors.length > 0) {  // il y a des erreurs 
+      res.status(403).json({
+      msg: "Requête incorrecte, opération rejetée",
+      });
+      return;
+    }else{ 
+
+      // Récupérer les informations  
+      const {
+        comment,
+        date,
+        stop,
+        target,
+        trade_id,
+      } = verifiedValues;
+
+
+      // Insérer une nouvelle entrée d'ajustement'
+      const querryEnter = `
+        INSERT INTO adjustment (date, target, stop, comment, trade_id)
+        VALUES ( ?,?,?,?,? )
+      `;
+      await Query.doByValues(querryEnter, {
+        date,
+        target,
+        stop,
+        comment,
+        trade_id,
+      });
+
+      // Modification des stops et objectifs en fonction des nouveaux
+      const queryUpd = `
+        UPDATE trade
+        SET currentTarget=?, currentStop=?, comment=? 
+        WHERE id = ?
+      `;
+      await Query.doByValues(queryUpd, {
+        target,
+        stop,
+        comment,
+        trade_id,
+      });
+
+      res.status(200).json("Ajustement correct");
+
+    }
+
+  } catch (error) {
+    res.json({ msg: error });
+  }
+};
+
+
+
+
+
+
+
+
+
 
 
 

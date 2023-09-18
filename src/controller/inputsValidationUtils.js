@@ -508,3 +508,66 @@ export async function newPortfolioInputCheck(inputs, res) {
 
   return { inputsErrors, verifiedValues }; // Renvoi des erreurs et des valeurs vérifiées
 }
+
+
+
+/**
+ * Vérifie les données d'entrée pour un adjutement
+ * @param {*} inputs - Les données d'entrée à vérifier .
+ * @returns {Object} - Un objet contenant les erreurs éventuelles et les valeurs vérifiées.
+ */
+export async function adjustmentInputCheck(inputs, res) {
+  const inputsErrors = []; // Tableau pour stocker les erreurs d'entrée
+  let verifiedValues = {}; // Objet pour stocker les valeurs vérifiées
+  const userId = res.locals.datas.userId; //recupère l'id du user (recup d'aprés le token reçu et validé)
+  const {
+    target,
+    stop,
+    trade_id,
+    stock_id,
+    comment,
+    date,
+  } = inputs;
+
+  // Vérification que les champs numériques sont bien numériques et non négatifs
+  const mustBeNumbers = [
+    target,
+    stop,
+    trade_id,
+    stock_id,
+  ];
+
+  const numberError = checkNumbers(mustBeNumbers);
+  if (numberError.length > 0) {
+    inputsErrors.push(numberError);
+  }
+
+  // verification que le trade existe et est bien lié au stock et à l'user
+  const trade = await verifyTrade(trade_id, stock_id, userId);
+  if (trade.length === 0) {
+    inputsErrors.push("Requête invalide");
+  }
+
+  //// verification de l'input "comment ////////////////////
+  const cleanComment = comment.trim();
+  if (cleanComment.length > 255) {
+    inputsErrors.push("commentaire non valide");
+  }
+
+  // vérification du format de la date ////////////////////////////
+  if (isNaN(new Date(date).getTime())) {
+    inputsErrors.push("Date non valide");
+  }
+
+  // Stockage des valeurs vérifiées dans l'objet
+  verifiedValues = {
+    date: date,
+    target: +target,
+    stop: +stop,
+    comment: cleanComment,
+    trade_id: +trade_id,
+    stock_id: +stock_id,
+  };
+
+  return { inputsErrors, verifiedValues }; // Renvoi des erreurs et des valeurs vérifiées
+}

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  adjustmentProcess,
   checkIfActiveTrade,
   exitPrepare,
   exitProcess,
@@ -18,5 +19,6 @@ router.get("/:tradeId/prepare", exitPrepare); // Also valid for reEnter
 router.post("/newEntry", newEntry); // creation d'un trade 
 router.post("/exitProcess", exitProcess); // vente d'un actif
 router.post("/reEnter", reEnterProcess); // re-enter sur un actif
+router.post("/adjustment", adjustmentProcess); // ajustements tp et stop sur un actif
 
 export default router;
