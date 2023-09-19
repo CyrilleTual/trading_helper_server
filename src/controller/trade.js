@@ -214,12 +214,7 @@ export const getByUser = async (req, res) => {
  */
 export const newEntry = async (req, res) => {
 
-
   try {
-
-
-
-
 
      const { inputsErrors, verifiedValues } = await newEntryInputCheck(req.body, res);
 
@@ -245,8 +240,10 @@ export const newEntry = async (req, res) => {
       lastQuote,
       beforeQuote,
       position,
+      currency_symbol
     } = verifiedValues;
 
+    
     // Crée la date de l'entrée initiale
     let dateToSet = new Date();
 
@@ -290,12 +287,13 @@ export const newEntry = async (req, res) => {
 
     if (existShares.length === 0) {
       /// Si pas d'enregistrement trouvé, crée un nouveau dans activeStock
-      const query = `INSERT INTO activeStock ( stock_id, lastQuote, beforeQuote) 
-        VALUES (?,?,?)`;
+      const query = `INSERT INTO activeStock ( stock_id, lastQuote, beforeQuote, currencySymbol) 
+        VALUES (?,?,?,?)`;
       await Query.doByValues(query, {
         stock_id,
         lastQuote,
         beforeQuote,
+        currency_symbol,
       });
     }
     res.status(200).json("trade entré correctement");

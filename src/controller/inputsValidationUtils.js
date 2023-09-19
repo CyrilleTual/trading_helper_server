@@ -5,6 +5,7 @@ import {
   currenciesIds,
   stocksIds,
   verifyTrade,
+  getCurrencies,
 } from "./controllerFunctionsUtils.js";
 
 /**
@@ -137,7 +138,7 @@ export async function newEntryInputCheck(inputs, res) {
     comment,
     strategy_id,
     portfolio_id,
-  currency_abbr,
+    currency_abbr,
     lastQuote,
     beforeQuote,
     position,
@@ -162,10 +163,12 @@ export async function newEntryInputCheck(inputs, res) {
 
 
 
+
   const numberError = checkNumbers(mustBeNumbers);
   if (numberError.length > 0) {
     inputsErrors.push(numberError);
   }
+
 
 
   //// verification de l'input "position" ////////////////////
@@ -199,13 +202,20 @@ export async function newEntryInputCheck(inputs, res) {
     inputsErrors.push("Strategie invalide");
   }
 
-  // verification de l'existance de la devise ////////////////////
-  const currencies = await currenciesIds();
+
+////////////////////////////////////////////////////////////////// 
+  // verification de l'existance de la devise et recup du symbol ////////////////////
+  const currencies = await getCurrencies();
+  let symbol = ""
+
   if (
     currencies.find((currency) => currency.abbr === currency_abbr) === undefined
   ) {
     inputsErrors.push("Devise invalide");
+  }else{
+    symbol = (currencies.find((currency) => currency.abbr === currency_abbr).symbol);
   }
+
 
   // verification de l'existance de l'id du stock  ///////////////
   const stocks = await stocksIds();
@@ -229,6 +239,7 @@ export async function newEntryInputCheck(inputs, res) {
     lastQuote: +lastQuote,
     beforeQuote: +beforeQuote,
     position: position,
+    currency_symbol: symbol,
   };
 
   return { inputsErrors, verifiedValues }; // Renvoi des erreurs et des valeurs vérifiées
