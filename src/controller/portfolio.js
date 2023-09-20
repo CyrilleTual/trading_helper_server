@@ -15,8 +15,11 @@ import {
 export const newPortfolio = async (req, res) => {
   try {
 
+
+
     const { inputsErrors, verifiedValues } = await newPortfolioInputCheck(req.body, res);
 
+   
     if (inputsErrors.length > 0) {
       // il y a des erreurs
       res.status(403).json({

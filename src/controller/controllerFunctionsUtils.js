@@ -92,6 +92,24 @@ export async function currenciesIds () {
 }
 
 /**
+ * Récupère le tableau des devises  
+ * 
+ * @returns {Array} - Liste des id des devises  
+ */
+export async function currenciesList () {
+     try {
+       // Requête pour récupérer les devises
+       const query = `
+            SELECT *
+            FROM currency
+        `;
+       return await Query.find(query);
+     } catch (error) {
+        console.log (error)
+     }
+}
+
+/**
  * Récupère la tableau  des devises  
  * 
  * @returns {Array} - tableau des devises  

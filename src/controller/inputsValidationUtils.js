@@ -2,7 +2,7 @@ import {
   checkIfUserExistByEmail,
   portfoliosListByUser,
   strategiesIdsByUser,
-  currenciesIds,
+  currenciesList,
   stocksIds,
   verifyTrade,
   getCurrencies,
@@ -471,7 +471,7 @@ export async function newPortfolioInputCheck(inputs, res) {
   const { title, comment, deposit, user_id, currency_abbr, status } = inputs;
 
   // Vérification que les champs numériques sont bien numériques et non négatifs
-  const mustBeNumbers = [deposit, user_id, currency_abbr];
+  const mustBeNumbers = [deposit, user_id];
   const numberError = checkNumbers(mustBeNumbers);
   if (numberError.length > 0) {
     inputsErrors.push(numberError);
@@ -497,7 +497,7 @@ export async function newPortfolioInputCheck(inputs, res) {
   }
 
   // Vérification de l'existence de la devise
-  const currencies = await currenciesIds();
+  const currencies = await currenciesList();
   if (!currencies.some((currency) => currency.abbr === currency_abbr)) {
     inputsErrors.push("Devise invalide");
   }
