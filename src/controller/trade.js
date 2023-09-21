@@ -104,7 +104,7 @@ async function actualisation(item) {
   const query = `
     SELECT DISTINCT stock.title, stock.id AS stockId, stock.isin AS isin, stock.place AS place, stock.ticker AS ticker, 
     activeStock.lastQuote, activeStock.currencySymbol As symbol, activeStock.beforeQuote As beforeQuote, activeStock.updDate updDate,
-    trade.firstEnter, currentTarget, currentStop, trade.comment, 
+    trade.firstEnter, currentTarget, currentStop, trade.comment, trade.position as position, 
     portfolio.id AS portfolioId 
     FROM enter
     JOIN trade ON enter.trade_id = trade.id 
@@ -118,15 +118,38 @@ async function actualisation(item) {
   // Exécute la requête pour obtenir les détails du trade
   const [trade] = await Query.doByValue(query, item.idTrade);
 
-  // Requête pour déterminer le PRU
-  const queryPru = `
-    SELECT (SUM(price*quantity) + SUM(fees) + SUM(tax)) / SUM(quantity) AS pru
+  // Requête pour informations sur les entrées
+  const queryEnter = `
+    SELECT SUM(price*quantity) AS totalCost,  (SUM(fees) + SUM(tax))  AS enterTaxs, SUM(quantity) AS quantityBought, 
+    (SUM(price*quantity) + SUM(fees) + SUM(tax)) / SUM(quantity) AS pru
     FROM enter
     WHERE trade_id = ?
   `;
-  
-  // Exécute la requête pour obtenir le PRU
-  const [{ pru }] = await Query.doByValue(queryPru, [item.idTrade]);
+
+  // Exécute la requête pour obtenir les entrées
+  const [{ totalCost, enterTaxs, quantityBought, pru }] = await Query.doByValue(
+    queryEnter,
+    [item.idTrade]
+  );
+
+  // Requête pour informations sur les sorties
+  const queryClosure = `
+    SELECT COALESCE(SUM(price*quantity),0) AS totalSold,  
+      COALESCE ((SUM(fees) + SUM(tax)),0) AS closureTaxs,
+      COALESCE(SUM(quantity),0) AS quantitySold, 
+      COALESCE((SUM(price*quantity) + SUM(fees) + SUM(tax)) / SUM(quantity),0) AS pvu
+    FROM closure
+    WHERE trade_id = ?
+
+  `;
+
+  // Exécute la requête pour obtenir les sorties
+  const [{ totalSold, closureTaxs, quantitySold, pvu }] = await Query.doByValue(
+    queryClosure,
+    [item.idTrade]
+  );
+
+  console.log;
 
   // Crée un objet avec les détails actualisés du trade
   let actulizedTrade = {
@@ -135,19 +158,27 @@ async function actualisation(item) {
     isin: trade.isin,
     place: trade.place,
     ticker: trade.ticker,
-    lastQuote: trade.lastQuote,
-    beforeQuote: trade.beforeQuote,
-    quantity: item.remains,
-    pru: Number.parseFloat(pru).toFixed(3),
-    perf: `${Number.parseFloat((trade.lastQuote - pru) / pru).toFixed(2)} %`,
-    firstEnter: new Date(trade.firstEnter).toLocaleDateString("fr-FR"),
-    currentTarget: trade.currentTarget,
-    currentStop: trade.currentStop,
+    position: trade.position,
+    totalCost: +totalCost,
+    enterTaxs: enterTaxs,
+    quantityBought: +quantityBought,
+    pru: +pru * 1,
+    totalSold: +totalSold,
+    closureTaxs: closureTaxs,
+    quantitySold: +quantitySold,
+    pvu: +pvu,
+    lastQuote: +trade.lastQuote,
+    beforeQuote: +trade.beforeQuote,
+    quantity: +item.remains,
+    perf: +Number.parseFloat(((trade.lastQuote - pru) / pru) * 100).toFixed(2),
+    firstEnter: trade.firstEnter,
+    currentTarget: +trade.currentTarget,
+    currentStop: +trade.currentStop,
     comment: trade.comment,
     symbol: trade.symbol,
-    upd: trade.updDate
+    upd: trade.updDate,
   };
-  
+
   return actulizedTrade;
 }
 
@@ -193,8 +224,6 @@ export const getByUser = async (req, res) => {
 
     // Obtenir les détails des trades actifs
     let activesTrades = await getDetailsOfOpensTrades(tradeList);
-
-    console.log ("avec details", activesTrades)
 
     // Renvoi de la liste des trades actifs avec leurs détails en réponse JSON
     res.status(200).json(activesTrades);
