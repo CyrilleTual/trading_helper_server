@@ -331,7 +331,7 @@ export const exitPrepare = async (req, res) => {
     // on cherche les informations du trade
     const tradeQuery = `SELECT DISTINCT stock.title, stock.isin AS isin, stock.id AS stock_id,
             stock.place AS place, stock.ticker AS ticker, 
-            activeStock.lastQuote,
+            activeStock.lastQuote, activeStock.currencySymbol as symbol,
             trade.id as tradeId, trade.firstEnter, currentTarget as target, currentStop as stop, trade.comment, trade.position,
             portfolio.title  AS portfolio, portfolio.id AS portfolio_id
             FROM enter
