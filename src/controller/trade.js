@@ -76,7 +76,6 @@ export const getAll = async (req, res) => {
 };
 
 
-
 /**
  * Obtient les détails des trades ouverts.
  * @param {Array} opensTradesList - Liste des trades ouverts.
@@ -84,18 +83,14 @@ export const getAll = async (req, res) => {
  */
 async function getDetailsOfOpensTrades(opensTradesList) {
   let activesTrades = [];
-
   // Parcourt la liste des trades ouverts
-  for (const item of opensTradesList) {
-    // Obtient les détails actualisés du trade en cours
-    const detailsActive = await actualisation(item);
-    
+  for (const [index, item] of opensTradesList.entries()) {
     // Ajoute les détails du trade actualisé à la liste des trades actifs
-    activesTrades.push(detailsActive);
+    activesTrades.push (await actualisation(item));
+     if (index === (opensTradesList.length - 2)) {
+       return (activesTrades);
+     }
   }
-
-  // Renvoie la liste des trades actifs avec leurs détails
-  return activesTrades;
 }
 
 
@@ -108,8 +103,8 @@ async function actualisation(item) {
   // Requête pour obtenir les détails du trade
   const query = `
     SELECT DISTINCT stock.title, stock.id AS stockId, stock.isin AS isin, stock.place AS place, stock.ticker AS ticker, 
-    activeStock.lastQuote,
-    trade.firstEnter, currentTarget, currentStop, trade.comment,
+    activeStock.lastQuote, activeStock.currencySymbol As symbol, activeStock.beforeQuote As beforeQuote, activeStock.updDate updDate,
+    trade.firstEnter, currentTarget, currentStop, trade.comment, 
     portfolio.id AS portfolioId 
     FROM enter
     JOIN trade ON enter.trade_id = trade.id 
@@ -125,7 +120,7 @@ async function actualisation(item) {
 
   // Requête pour déterminer le PRU
   const queryPru = `
-    SELECT SUM(price) + SUM(fees) + SUM(tax) / SUM(quantity) AS pru
+    SELECT (SUM(price*quantity) + SUM(fees) + SUM(tax)) / SUM(quantity) AS pru
     FROM enter
     WHERE trade_id = ?
   `;
@@ -135,11 +130,13 @@ async function actualisation(item) {
 
   // Crée un objet avec les détails actualisés du trade
   let actulizedTrade = {
+    portfolio_id: trade.portfolioId,
     title: trade.title,
     isin: trade.isin,
     place: trade.place,
     ticker: trade.ticker,
     lastQuote: trade.lastQuote,
+    beforeQuote: trade.beforeQuote,
     quantity: item.remains,
     pru: Number.parseFloat(pru).toFixed(3),
     perf: `${Number.parseFloat((trade.lastQuote - pru) / pru).toFixed(2)} %`,
@@ -147,6 +144,8 @@ async function actualisation(item) {
     currentTarget: trade.currentTarget,
     currentStop: trade.currentStop,
     comment: trade.comment,
+    symbol: trade.symbol,
+    upd: trade.updDate
   };
   
   return actulizedTrade;
@@ -191,10 +190,11 @@ export const getByUser = async (req, res) => {
     // Détermine la liste des trades actifs en fonction des trades ouverts et fermés
     let tradeList = activesOnly(opened, closed);
 
+
     // Obtenir les détails des trades actifs
     let activesTrades = await getDetailsOfOpensTrades(tradeList);
 
- 
+    console.log ("avec details", activesTrades)
 
     // Renvoi de la liste des trades actifs avec leurs détails en réponse JSON
     res.status(200).json(activesTrades);
@@ -586,14 +586,6 @@ export const adjustmentProcess = async (req, res) => {
     res.json({ msg: error });
   }
 };
-
-
-
-
-
-
-
-
 
 
 
