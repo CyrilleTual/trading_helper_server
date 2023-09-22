@@ -89,16 +89,29 @@ export const getAll = async (req, res) => {
  * @param {Array} opensTradesList - Liste des trades ouverts.
  * @returns {Array} - Liste des trades ouverts avec leurs détails.
  */
+// async function getDetailsOfOpensTrades(opensTradesList) {
+//   let activesTrades = [];
+//   // Parcourt la liste des trades ouverts
+//   for (const [index, item] of opensTradesList.entries()) {
+//     // Ajoute les détails du trade actualisé à la liste des trades actifs
+//     activesTrades.push (await actualisation(item));
+//      if (index === (opensTradesList.length - 1)) {
+//        return (activesTrades);
+//      }
+//   }
+// }
+
+/**
+ * Obtient les détails des trades ouverts.
+ * @param {Array} opensTradesList - Liste des trades ouverts.
+ * @returns {Array} - Liste des trades ouverts avec leurs détails.
+ */
 async function getDetailsOfOpensTrades(opensTradesList) {
-  let activesTrades = [];
-  // Parcourt la liste des trades ouverts
-  for (const [index, item] of opensTradesList.entries()) {
-    // Ajoute les détails du trade actualisé à la liste des trades actifs
-    activesTrades.push (await actualisation(item));
-     if (index === (opensTradesList.length - 1)) {
-       return (activesTrades);
-     }
+  let detailledTrades = [];
+  for (const trade of opensTradesList) {
+    detailledTrades.push(await actualisation(trade));
   }
+  return detailledTrades;
 }
 
 
