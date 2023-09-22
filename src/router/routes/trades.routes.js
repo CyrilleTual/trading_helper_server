@@ -13,7 +13,7 @@ import {
 const router = Router();
 
 router.get("/active", getAll); // tous les trades actifs -> pour admin 
-router.get("/activeByUser/:userId", getByUser);
+router.get("/activesByUser/:userId", getByUser);
 router.get("/checkIfActive/:idStock&:idPortfolio", checkIfActiveTrade);
 router.get("/:tradeId/prepare", exitPrepare); // Also valid for reEnter
 router.post("/newEntry", newEntry); // creation d'un trade 
