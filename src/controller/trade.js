@@ -125,7 +125,7 @@ async function actualisation(item) {
   const query = `
     SELECT DISTINCT stock.title, stock.id AS stockId, stock.isin AS isin, stock.place AS place, stock.ticker AS ticker, 
     activeStock.lastQuote, activeStock.currencySymbol As symbol, activeStock.beforeQuote As beforeQuote, activeStock.updDate updDate,
-    trade.firstEnter, currentTarget, currentStop, trade.comment, trade.position as position, 
+    trade.firstEnter, currentTarget, currentStop, trade.comment, trade.position as position, trade.id AS tradeId,
     portfolio.id AS portfolioId, portfolio.title AS portfolio, trade.strategy_id AS strategyId, strategy.title AS strategy
     FROM enter
     JOIN trade ON enter.trade_id = trade.id 
@@ -201,6 +201,7 @@ async function actualisation(item) {
     upd: trade.updDate,
     strategyId: trade.strategyId,
     strategy: trade.strategy,
+    tradeId: trade.tradeId
   };
 
   return actulizedTrade;
