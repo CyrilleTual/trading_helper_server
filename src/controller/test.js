@@ -1,6 +1,6 @@
 import Query from "../model/query.js";
 import {  scrapeLastInfos } from "../utils/scraper.js";
-import { activesOnly } from "./trade.js";
+import { SortTradesByActivity } from "./trade.js";
 
 // export  const  testview = (req, res) => {
 //     res.send(" ho ok my friend that's it");
@@ -161,7 +161,7 @@ export const testview = async (req, res) => {
     const opened = await Query.doByValue(queryOpened, [userId]);
     const closed = await Query.doByValue(queryClosed, [userId]);
     // on va en déduire le tableau des trades actifs
-    let tradeList = activesOnly(opened, closed);
+    let tradeList = SortTradesByActivity(opened, closed);
     //console.log("coucou", opened, closed, tradeList);
 
 

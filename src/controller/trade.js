@@ -1,22 +1,22 @@
 import Query from "../model/query.js";
 import { newEntryInputCheck, reEnterInputCheck, exitInputCheck, adjustmentInputCheck }  from "./inputsValidationUtils.js"
 
-
- /**
- * Retourne les trades actifs à partir du tableau des entrées et de celui des sorties.
- * 
- * @param {Array} opened - Tableau des trades ouverts.
- * @param {Array} closed - Tableau des trades fermés.
- * @returns {Array} Tableau des trades actifs.
+/**
+ * Trie les trades en fonction de leur activité .
+ * @param {Array} opened - Liste des trades ouverts.
+ * @param {Array} closed - Liste des trades fermés.
+ * @returns {Object} - Un objet contenant les trades actifs et fermés.
  */
-export function activesOnly(opened, closed) {
-  let activesTrades = [];
+export function SortTradesByActivity(opened, closed) {
+  let activesTrades = []; // Liste pour les trades actifs
+  let closedTrades = []; // Liste pour les trades fermés
 
+  // Parcourt la liste des trades ouverts
   for (const entry of opened) {
-     
-    let closureExist = false;
-    let remains;
+    let closureExist = false; // Indique si une clôture existe pour ce trade
+    let remains; // Nombre de stocks restant dans le trade
 
+    // Parcourt la liste des trades fermés pour trouver une correspondance
     for (const exit of closed) {
       if (exit.tradeId === entry.tradeId) {
         closureExist = true; // il existe une cloture pour le stock
@@ -24,18 +24,23 @@ export function activesOnly(opened, closed) {
       }
     }
     if (closureExist === false) {
-      remains = +entry.opened; // Si pas de sortie 
+      remains = +entry.opened; // Si pas de sortie
     }
-    activesTrades.push({ idTrade: entry.tradeId, remains: remains });
+
+    // Ajoute le trade à la liste correspondante (actif ou fermé) en fonction du nombre restant
+    remains > 0
+      ? activesTrades.push({ idTrade: entry.tradeId, remains: remains })
+      : closedTrades.push({ idTrade: entry.tradeId, remains: remains });
   }
-  return activesTrades;
+
+  return { activesTrades, closedTrades }; // Retourne un objet contenant les trades actifs et fermés
 }
 
 
 /**
  * Sélection de tous les trades actifs (accessible uniquement aux administrateurs).
  * 
- * - Appel de la fonction 'activesOnly' pour filtrer et obtenir les trades actifs avec les quantités restantes.
+ * - Appel de la fonction 'SortTradesByActivity' pour filtrer et obtenir les trades actifs avec les quantités restantes.
  * - Renvoi de la liste des trades actifs en réponse.
  * 
  * @param {*} req - L'objet de la requête HTTP.
@@ -61,8 +66,11 @@ export const getAll = async (req, res) => {
     const opened = await Query.find(queryOpened);
     const closed = await Query.find(queryClosed);
 
-    // Filtrage des trades actifs en appelant la fonction 'activesOnly'
-    let activesTrades = activesOnly(opened, closed);
+    // Filtrage des trades actifs en appelant la fonction 'SortTradesByActivity'
+    const { activesTrades, closedTrades } = SortTradesByActivity(
+      opened,
+      closed
+    );
 
     // Renvoi de la liste des trades actifs en réponse
     res.status(200).json(activesTrades);
@@ -87,7 +95,7 @@ async function getDetailsOfOpensTrades(opensTradesList) {
   for (const [index, item] of opensTradesList.entries()) {
     // Ajoute les détails du trade actualisé à la liste des trades actifs
     activesTrades.push (await actualisation(item));
-     if (index === (opensTradesList.length - 2)) {
+     if (index === (opensTradesList.length - 1)) {
        return (activesTrades);
      }
   }
@@ -96,7 +104,7 @@ async function getDetailsOfOpensTrades(opensTradesList) {
 
 /**
  * Actualise les détails d'un trade.
- * @param {Object} item - Informations sur le trade.
+ * @param {Object} item - Informations sur le trade (contient id et remains).
  * @returns {Object} - Détails actualisés du trade.
  */
 async function actualisation(item) {
@@ -105,13 +113,14 @@ async function actualisation(item) {
     SELECT DISTINCT stock.title, stock.id AS stockId, stock.isin AS isin, stock.place AS place, stock.ticker AS ticker, 
     activeStock.lastQuote, activeStock.currencySymbol As symbol, activeStock.beforeQuote As beforeQuote, activeStock.updDate updDate,
     trade.firstEnter, currentTarget, currentStop, trade.comment, trade.position as position, 
-    portfolio.id AS portfolioId 
+    portfolio.id AS portfolioId, portfolio.title AS portfolio, trade.strategy_id AS strategyId, strategy.title AS strategy
     FROM enter
     JOIN trade ON enter.trade_id = trade.id 
     JOIN stock ON trade.stock_id = stock.id 
     JOIN activeStock ON activeStock.stock_id = stock.id
     JOIN portfolio ON trade.portfolio_id = portfolio.id 
     JOIN user ON portfolio.user_id = user.id 
+    JOIN strategy ON trade.strategy_Id = strategy.id
     WHERE trade.id = ?
   `;
 
@@ -149,34 +158,36 @@ async function actualisation(item) {
     [item.idTrade]
   );
 
-  console.log;
 
   // Crée un objet avec les détails actualisés du trade
   let actulizedTrade = {
-    portfolio_id: trade.portfolioId,
+    portfolioId: trade.portfolioId,
+    portfolio: trade.portfolio,
     title: trade.title,
     isin: trade.isin,
     place: trade.place,
     ticker: trade.ticker,
     position: trade.position,
-    totalCost: +totalCost,
-    enterTaxs: enterTaxs,
-    quantityBought: +quantityBought,
-    pru: +pru * 1,
-    totalSold: +totalSold,
-    closureTaxs: closureTaxs,
-    quantitySold: +quantitySold,
+    enterTotalK: +totalCost,
+    enterTaxs: +enterTaxs,
+    enterQuantity: +quantityBought,
+    pru: +pru,
+    closureTotalK: +totalSold,
+    closureTaxs: +closureTaxs,
+    closureQuantity: +quantitySold,
     pvu: +pvu,
     lastQuote: +trade.lastQuote,
     beforeQuote: +trade.beforeQuote,
-    quantity: +item.remains,
+    actualQuantity: +item.remains,
     perf: +Number.parseFloat(((trade.lastQuote - pru) / pru) * 100).toFixed(2),
     firstEnter: trade.firstEnter,
     currentTarget: +trade.currentTarget,
     currentStop: +trade.currentStop,
-    comment: trade.comment,
+    currentComment: trade.comment,
     symbol: trade.symbol,
     upd: trade.updDate,
+    strategyId: trade.strategyId,
+    strategy: trade.strategy,
   };
 
   return actulizedTrade;
@@ -219,14 +230,13 @@ export const getByUser = async (req, res) => {
     const closed = await Query.doByValue(queryClosed, [userId]);
 
     // Détermine la liste des trades actifs en fonction des trades ouverts et fermés
-    let tradeList = activesOnly(opened, closed);
-
+    let { activesTrades } = SortTradesByActivity(opened, closed);
 
     // Obtenir les détails des trades actifs
-    let activesTrades = await getDetailsOfOpensTrades(tradeList);
+    let activesTradesDetails = await getDetailsOfOpensTrades(activesTrades);
 
     // Renvoi de la liste des trades actifs avec leurs détails en réponse JSON
-    res.status(200).json(activesTrades);
+    res.status(200).json(activesTradesDetails);
   } catch (error) {
     // En cas d'erreur, renvoi d'un message d'erreur dans la réponse JSON
     res
@@ -549,7 +559,7 @@ export const reEnterProcess = async (req, res) => {
 };
 
 /**
- * Re-Enter dans un trade en cours
+ * Ajustement un trade en cours
  * @param {*} req - Requête HTTP.
  * @param {*} res - Réponse HTTP.
  */
