@@ -14,12 +14,11 @@ import {
  */
 export const newPortfolio = async (req, res) => {
   try {
+    const { inputsErrors, verifiedValues } = await newPortfolioInputCheck(
+      req.body,
+      res
+    );
 
-
-
-    const { inputsErrors, verifiedValues } = await newPortfolioInputCheck(req.body, res);
-
-   
     if (inputsErrors.length > 0) {
       // il y a des erreurs
       res.status(403).json({
@@ -59,10 +58,9 @@ export const newPortfolio = async (req, res) => {
   }
 };
 
-
 /**
  * Effectue un dépôt (ou un retrait) sur un portefeuille.
- * 
+ *
  * @param {Request} req - Requête HTTP.
  * @param {Response} res - Réponse HTTP.
  */
@@ -97,15 +95,13 @@ export const deposit = async (req, res) => {
   }
 };
 
-
 /**
  * Récupère la liste des portefeuilles et leurs caractéristiques pour un utilisateur donné (userId).
- * 
+ *
  * @param {*} userId - Identifiant de l'utilisateur.
  * @returns {Array} - Liste des portefeuilles pour l'utilisateur.
  */
 async function portfoliosByUser(userId) {
-
   // Requête SQL pour récupérer les informations des portefeuilles d'un utilisateur donné
   const query = `
     SELECT portfolio.id, portfolio.title, portfolio.comment, currency.abbr as currencyAbbr, currency.title as currency, currency.symbol as symbol, currency.abbr as abbr, portfolio.status as status
@@ -120,15 +116,13 @@ async function portfoliosByUser(userId) {
   return portfolios;
 }
 
-
 /**
  * Marque un portefeuille comme inactif.
- * 
+ *
  * @param {Request} req - Requête HTTP.
  * @param {Response} res - Réponse HTTP.
  */
 export const idlePortfolio = async (req, res) => {
-
   const { inputsErrors, verifiedValues } = await idleInputCheck(req.body, res);
 
   if (inputsErrors.length > 0) {
@@ -140,7 +134,7 @@ export const idlePortfolio = async (req, res) => {
   } else {
     // Récupération de l'identifiant du portefeuille à rendre inactif depuis les paramètres de la requête
     const { idPortfolio, status } = verifiedValues;
-    const newStatus = status === 'active' ? 'idle' : 'active';
+    const newStatus = status === "active" ? "idle" : "active";
     try {
       // Requête SQL pour mettre à jour le statut du portefeuille en 'idle'
       const query = `
@@ -149,7 +143,7 @@ export const idlePortfolio = async (req, res) => {
         WHERE id =? 
       `;
       // Exécution de la requête pour marquer le portefeuille comme inactif
-      await Query.doByValues(query, {newStatus, idPortfolio});
+      await Query.doByValues(query, { newStatus, idPortfolio });
 
       // Réponse indiquant que le portefeuille a été rendu inactif avec succès
       res.status(200).json({ msg: "statut modifé avec succès." });
@@ -160,21 +154,19 @@ export const idlePortfolio = async (req, res) => {
   }
 };
 
-
 /**
  * Récupère les portefeuilles d'un utilisateur spécifique (route /portfolios/user/:userId) .
- * 
+ *
  * @param {Request} req - Requête HTTP.
  * @param {Response} res - Réponse HTTP.
  */
 export const getPortfoliosByUser = async (req, res) => {
-
   // recupère l'id de l'uder depuis les paramètres de la requête
   const { userId } = req.params;
   try {
     // Appelle la fonction portfoliosByUser pour récupérer les portefeuilles de l'utilisateur
     const portfolios = await portfoliosByUser(userId);
-    
+
     // Répond avec un statut 200 (OK) et renvoie la liste des portefeuilles au format JSON
     res.status(200).json(portfolios);
   } catch (error) {
@@ -183,16 +175,12 @@ export const getPortfoliosByUser = async (req, res) => {
   }
 };
 
- 
-
-
 /**
  * informations sur un portfolio par id
  * @param {number} id - L'ID du portefeuille.
  * @returns {object} - Objet contenant les informations du portefeuille
  */
 const portfolioInfos = async (id) => {
-
   // Requète  SQL pour recupérer les information sur un portfolio par son id
   const query = `
    SELECT title, comment, user_id as userId, currency_abbr as currencyAbbr
@@ -203,7 +191,6 @@ const portfolioInfos = async (id) => {
   // Exucution de la requête
   const result = await Query.doByValue(query, id);
 
-  
   return result[0];
 };
 
@@ -221,14 +208,12 @@ const initial = async (id) => {
   return result[0].totalDeposit;
 };
 
-
 /**
  * Récupère la liste de tous les trades ouverts pour un portefeuille donné.
  * @param {number} idPortfolio - L'ID du portefeuille.
  * @returns {Promise<Array>} - Une promesse résolvant en un tableau de trades ouverts.
  */
 async function opened(idPortfolio) {
-
   // Requête SQL pour obtenir les détails des trades ouverts pour le portefeuille donné
   const query = `
     select enter.trade_id as tradeId, SUM(enter.quantity) as quantity, SUM(price*quantity) as totalEnterK, SUM(fees+tax) as totalEnterTaxs, trade.position
@@ -244,7 +229,6 @@ async function opened(idPortfolio) {
   return opened;
 }
 
-
 /**
  * Sélectionne tous les trades fermés pour un portefeuille donné.
  * Retourne l'ID du trade, la quantité de sortie et le prix de sortie total (incluant les taxes).
@@ -252,7 +236,6 @@ async function opened(idPortfolio) {
  * @returns {Promise<Array>} - Une promesse résolvant en un tableau de trades long fermés.
  */
 const closed = async (idPortfolio) => {
-
   // Requête SQL pour obtenir les détails des tradesfermés pour le portefeuille donné
   const query = `
     select closure.trade_id as tradeId, SUM(closure.quantity) as quantity, 
@@ -268,7 +251,6 @@ const closed = async (idPortfolio) => {
   // et retourne le resultat
   return await Query.doByValue(query, idPortfolio);
 };
-
 
 /**
  * Récupère les détails d'un trade actif à partir de son ID.
@@ -300,7 +282,7 @@ const detailsCurrentTrade = async (idTrade, prutmp) => {
     });
   }
 
-  // retourne tableau de détail des trades actifs 
+  // retourne tableau de détail des trades actifs
   return result;
 };
 
@@ -311,20 +293,23 @@ const detailsCurrentTrade = async (idTrade, prutmp) => {
  * @returns {Object} - Un objet contenant les détails des trades actifs et fermés.
  */
 async function getDetails(opened, closed) {
-  
   let activesTrades = [];
   let closedTrades = [];
 
   // Construction des tableaux des trades actifs et celui des trades fermés
-  for (const element1 of opened) {  // on boucle sur chaque trade ouvert
+  for (const element1 of opened) {
+    // on boucle sur chaque trade ouvert
     let remains = 0;
     let flag = false;
 
-    for (const element2 of closed) { // on boucle sur chaque trade fermé
-      if (element2.tradeId === element1.tradeId) { // si il y a correspondance des id
+    for (const element2 of closed) {
+      // on boucle sur chaque trade fermé
+      if (element2.tradeId === element1.tradeId) {
+        // si il y a correspondance des id
         flag = true; // il existe une clôture pour ce trade
-        remains = +element1.quantity - element2.quantity; 
-        if (remains > 0) { // la sortie est partielle -> le trade est encore actif
+        remains = +element1.quantity - element2.quantity;
+        if (remains > 0) {
+          // la sortie est partielle -> le trade est encore actif
           activesTrades.push({
             tradeId: element1.tradeId,
             position: element1.position,
@@ -353,8 +338,8 @@ async function getDetails(opened, closed) {
       }
     }
 
-        if (flag === false) {
-        // pas de cloture pour ce trade
+    if (flag === false) {
+      // pas de cloture pour ce trade
       activesTrades.push({
         tradeId: element1.tradeId,
         position: element1.position,
@@ -389,6 +374,8 @@ async function getDetails(opened, closed) {
  * @returns {Object} - Le solde des trades actifs.
  */
 function balanceOfActivestrades(activesDetails) {
+
+
   const balanceActives = {
     activeK: 0,
     currentPv: 0,
@@ -403,18 +390,49 @@ function balanceOfActivestrades(activesDetails) {
     // Calcul du nombre d'actions actives
     const nbActivesShares = +element.bougth - +element.sold;
     const pru = +((+element.enterK + +element.enterTaxs) / +element.bougth); // pru si long ou garantie si short
+    if (element.position === "long") {
+      const neutral = pru;
+    } else if (element.position === "short") {
+      const neutral = +(
+        (+element.enterK - +element.enterTaxs) /
+        +element.bougth
+      );
+    }
 
     // Calcul du capital investi dans chaque trade ( ce qui sort du wallet)
     const activeK = pru * nbActivesShares;
     balanceActives.activeK += activeK;
 
     // Calcul de la valeur actuelle (+/-) des positions actives
+    let valueToSet = null
+
+    if (element.position === "long") {
+      if (element.lastQuote > element.currentTarget) {
+        valueToSet = element.currentTarget;
+      } else if (element.lastQuote < element.currentStop) {
+        valueToSet = element.currentStop;
+      } else {
+        valueToSet = element.lastQuote;
+      }
+    } 
+
+    if (element.position === "short") {
+      if (element.lastQuote < element.currentTarget) {
+        valueToSet = element.currentTarget;
+      } else if (element.lastQuote > element.currentStop) {
+        valueToSet = element.currentStop;
+      } else {
+        valueToSet = element.lastQuote;
+      }
+    } 
+    
     const pv =
       element.position === "long"
-        ? nbActivesShares * (element.lastQuote - pru)
+        ? nbActivesShares * (valueToSet - pru)
         : nbActivesShares *
           ((+element.enterK - +element.enterTaxs) / +element.bougth -
-            +element.lastQuote);
+            +valueToSet);
+
     balanceActives.currentPv += pv;
 
     // Calcul du potentiel restant sur les positions actives
@@ -454,8 +472,8 @@ function balanceOfActivestrades(activesDetails) {
     // Calcul des mouvements de trésorerie dans le portefeuille (gains provenant de la vente d'actifs)
     balanceActives.cash +=
       -element.enterK - +element.enterTaxs + +element.exitK - +element.exitTaxs;
-  }
 
+  }
   // Arrondir la valeur des actifs à deux décimales
   balanceActives.assets = +balanceActives.assets.toFixed(2);
 
@@ -470,7 +488,6 @@ function balanceOfActivestrades(activesDetails) {
  * @returns {Object} - Le tableau de bord mis à jour.
  */
 function feedDashboard(portfolioDash, balanceActives, closedTrades) {
-
   portfolioDash.currentPv = +balanceActives.currentPv.toFixed(2);
   portfolioDash.activeK = +balanceActives.activeK.toFixed(2);
   portfolioDash.currentPvPc =
@@ -527,17 +544,15 @@ function feedDashboard(portfolioDash, balanceActives, closedTrades) {
             +portfolioDash.initCredit) *
           100
         ).toFixed(2)
-      : 0
-  ;
+      : 0;
 
   return portfolioDash;
 }
 
-/***********************************************************
+/******************************************************************************************************
  * On recupère le tableau de bord d'un portfolio particulier (portfolioId)
  */
 async function portfolioDashboard(portfolioId) {
-
   const portfolioDash = {
     id: portfolioId, // Identifiant du portefeuille
     currentPv: 0, // Valeur actuelle du portefeuille (P&L actuel)
@@ -595,7 +610,6 @@ async function portfolioDashboard(portfolioId) {
  * @param {Response} res - La réponse HTTP à renvoyer.
  */
 export const getOnePortfolioDashboard = async (req, res) => {
-
   try {
     // Appel à la fonction portfolioDashboard pour récupérer le tableau de bord du portefeuille spécifié par son identifiant
     const dashboard = await portfolioDashboard(+req.params.idPortfolio);
@@ -608,16 +622,12 @@ export const getOnePortfolioDashboard = async (req, res) => {
   }
 };
 
- 
-
-
 /**
  * Récupère le tableau de bord global d'un utilisateur via la route /portfolios/dashboard/id
  * @param {Request} req - La requête HTTP contenant les paramètres.
  * @param {Response} res - La réponse HTTP à renvoyer.
  */
 export const getGlobalDashboardOfOneUser = async (req, res) => {
-
   // On récupère les différentes devises de l'application
   const currenciesArray = await appCurrencies();
 
@@ -634,7 +644,7 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
 
   try {
     // Initialisation du tableau de bord du portefeuille global
-    
+
     const portfolioDash = {
       //userId: +req.params.userId,
       userId: +res.locals.datas.userId, // permet de les visitors
@@ -657,10 +667,8 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
       activeK: 0,
     };
 
-  
     // On récupère la liste des portefeuilles de l'utilisateur
     const portfolios = await portfoliosByUser(portfolioDash.userId);
-
 
     // Pour chaque portefeuille on va chercher le tableau de bord et alimenter le tableau de bord global
     for await (const portfolio of portfolios) {
@@ -672,7 +680,6 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
           el.from_currency === appCurrencyAbbr &&
           el.to_currency === dash.currencyAbbr
       ).rate;
-
 
       // Mise à jour des valeurs du tableau de bord global avec les valeurs du portefeuille en cours
       portfolioDash.currentPv = +(
@@ -716,6 +723,8 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
         (1 / xRate) * dash.activeK
       ).toFixed(2);
       //console.log(portfolioDash);
+
+      console.log(portfolioDash.currentPv);
     }
 
     // Calcul de la variation journalière en pourcentage
@@ -749,8 +758,6 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
       100
     ).toFixed(2);
 
-
-
     // Envoi du tableau de bord global en tant que réponse JSON
     res.status(200).json(portfolioDash);
   } catch (error) {
@@ -759,7 +766,6 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
   }
 };
 
- 
 /**
  * On récupère les détails d'un portfolio particulier via la route /portfolios/:idPortfolio/details
  * @param {Request} req - La requête HTTP contenant les paramètres.
