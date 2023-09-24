@@ -121,6 +121,11 @@ async function getDetailsOfOpensTrades(opensTradesList) {
  * @returns {Object} - Détails actualisés du trade.
  */
 async function actualisation(item) {
+
+
+ 
+
+
   // Requête pour obtenir les détails du trade
   const query = `
     SELECT DISTINCT stock.title, stock.id AS stockId, stock.isin AS isin, stock.place AS place, stock.ticker AS ticker, 
@@ -171,6 +176,18 @@ async function actualisation(item) {
     [item.idTrade]
   );
 
+  // calcul du point de neutralité -> cours où l'on est neutre 
+
+  let neutral = null
+  trade.position === "long" ?  neutral = +pru : neutral =  (+totalCost-enterTaxs )/+quantityBought
+
+  // const pruTest = ((+totalCost+(+enterTaxs)) / +quantityBought)
+
+  // console.log ("cout",+totalCost, "taxes ",+enterTaxs, "quantite", +quantityBought, "pruTest", pruTest,"pru",pru, "neutral",neutral)
+
+
+
+ //console.log(trade.position, pru, pruTest, neutral);
 
   // Crée un objet avec les détails actualisés du trade
   let actulizedTrade = {
@@ -201,7 +218,9 @@ async function actualisation(item) {
     upd: trade.updDate,
     strategyId: trade.strategyId,
     strategy: trade.strategy,
-    tradeId: trade.tradeId
+    tradeId: trade.tradeId,
+    neutral: +neutral
+
   };
 
   return actulizedTrade;
@@ -209,11 +228,13 @@ async function actualisation(item) {
 
 
 /**
- * Récupère la liste des trades actifs pour un utilisateur.
+ * Récupère le détails des trades ouverts pour un user 
  * @param {*} req - Requête HTTP.
  * @param {*} res - Réponse HTTP.
  */
-export const getByUser = async (req, res) => {
+export const getActivesByUser = async (req, res) => {
+
+  // id de l'utilisateur  pour lequel on veut recupérer les trades 
   const { userId } = req.params;
 
   try {

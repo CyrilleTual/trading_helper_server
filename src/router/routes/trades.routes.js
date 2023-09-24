@@ -5,7 +5,7 @@ import {
   exitPrepare,
   exitProcess,
   getAll,
-  getByUser,
+  getActivesByUser,
   newEntry,
   reEnterProcess,
 } from "../../controller/trade.js";
@@ -13,7 +13,7 @@ import {
 const router = Router();
 
 router.get("/active", getAll); // tous les trades actifs -> pour admin 
-router.get("/activesByUser/:userId", getByUser);
+router.get("/activesByUser/:userId", getActivesByUser);
 router.get("/checkIfActive/:idStock&:idPortfolio", checkIfActiveTrade);
 router.get("/:tradeId/prepare", exitPrepare); // Also valid for reEnter
 router.post("/newEntry", newEntry); // creation d'un trade 
