@@ -462,12 +462,13 @@ function balanceOfActivestrades(activesDetails) {
     // Calcul de la valeur potentielle des actifs actifs si vente
     const assets =
       element.position === "long"
-        ? +nbActivesShares * +element.lastQuote
+        ? +nbActivesShares * +valueToSet
         : +nbActivesShares *
           (+element.enterK / +element.bougth -
-            +element.lastQuote +
+            +valueToSet +
             +element.enterK / +element.bougth);
     balanceActives.assets += +assets;
+
 
     // Calcul des mouvements de trésorerie dans le portefeuille (gains provenant de la vente d'actifs)
     balanceActives.cash +=
@@ -593,6 +594,8 @@ async function portfolioDashboard(portfolioId) {
   // on va chercher la synthèse des trades actifs
   const balanceActives = balanceOfActivestrades(activesDetails);
 
+ 
+
   // on traite les infos pour faire le dashboard
   const dashboard = await feedDashboard(
     portfolioDash,
@@ -623,7 +626,7 @@ export const getOnePortfolioDashboard = async (req, res) => {
 };
 
 /**
- * Récupère le tableau de bord global d'un utilisateur via la route /portfolios/dashboard/id
+ * Récupère le tableau de bord global d'un utilisateur via la route portfolios/dashBoard/user/:userId
  * @param {Request} req - La requête HTTP contenant les paramètres.
  * @param {Response} res - La réponse HTTP à renvoyer.
  */
@@ -724,7 +727,7 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
       ).toFixed(2);
       //console.log(portfolioDash);
 
-      console.log(portfolioDash.currentPv);
+      
     }
 
     // Calcul de la variation journalière en pourcentage
