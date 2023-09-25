@@ -439,8 +439,8 @@ function balanceOfActivestrades(activesDetails) {
     const remains =
       nbActivesShares *
       (element.position === "long"
-        ? element.currentTarget - element.lastQuote
-        : element.lastQuote - element.currentTarget);
+        ? element.currentTarget - valueToSet
+        : valueToSet - element.currentTarget);
     balanceActives.potential += remains;
 
     // Calcul de la performance en cas de déclenchement du stop (risque) en valeur
@@ -594,9 +594,8 @@ async function portfolioDashboard(portfolioId) {
   // on va chercher la synthèse des trades actifs
   const balanceActives = balanceOfActivestrades(activesDetails);
 
- 
 
-  // on traite les infos pour faire le dashboard
+  // on traiitee les infos pour faire le dashboard
   const dashboard = await feedDashboard(
     portfolioDash,
     balanceActives,
