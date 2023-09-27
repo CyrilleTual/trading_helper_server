@@ -176,10 +176,33 @@ async function actualisation(item) {
     [item.idTrade]
   );
 
-  // calcul du point de neutralité -> cours où l'on est neutre 
-
+  // calcul du point de neutralité -> cours où l'on est neutre ni en gain, ni en perte 
   let neutral = null
   trade.position === "long" ?  neutral = +pru : neutral =  (+totalCost-enterTaxs )/+quantityBought
+
+  // détermination du statut du trade en cours : OnGoing, OnStop, OnTarget 
+  let status = "OnGoing";
+  if (trade.position === "long" && trade.lastQuote > trade.currentTarget) {
+    status = "OnTarget";
+  } else if (trade.position === "long" && trade.lastQuote < trade.currentStop) {
+    status = "OnStop";
+  } else if (
+    trade.position === "short" &&
+    trade.lastQuote < trade.currentTarget
+  ) {
+    status = "OnTarget";
+  } else if (
+    trade.position === "short" &&
+    trade.lastQuote > trade.currentStop
+  ) {
+    status = "OnStop";
+  }
+
+
+
+
+
+
 
   // const pruTest = ((+totalCost+(+enterTaxs)) / +quantityBought)
 
@@ -195,6 +218,7 @@ async function actualisation(item) {
     portfolio: trade.portfolio,
     title: trade.title,
     isin: trade.isin,
+    stockId: trade.stockId,
     place: trade.place,
     ticker: trade.ticker,
     position: trade.position,
@@ -219,7 +243,8 @@ async function actualisation(item) {
     strategyId: trade.strategyId,
     strategy: trade.strategy,
     tradeId: trade.tradeId,
-    neutral: +neutral
+    neutral: +neutral,
+    status: status,
 
   };
 
