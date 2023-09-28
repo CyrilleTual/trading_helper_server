@@ -410,57 +410,57 @@ export const newEntry = async (req, res) => {
  * @param {*} req - Requête HTTP.
  * @param {*} res - Réponse HTTP.
  */
-export const exitPrepare = async (req, res) => {
-  const { tradeId } = req.params;
+// export const exitPrepare = async (req, res) => {
+//   const { tradeId } = req.params;
 
-  try {
-    // on cherhche toutes les entrées sur le trade
-    const enterQuery = `Select SUM((enter.price * enter.quantity)+enter.fees+enter.tax) as enterValue, SUM(quantity) as enterQuantity
-    FROM enter
-    WHERE enter.trade_id = ?`;
-    const [enter] = await Query.doByValue(enterQuery, tradeId);
+//   try {
+//     // on cherhche toutes les entrées sur le trade
+//     const enterQuery = `Select SUM((enter.price * enter.quantity)+enter.fees+enter.tax) as enterValue, SUM(quantity) as enterQuantity
+//     FROM enter
+//     WHERE enter.trade_id = ?`;
+//     const [enter] = await Query.doByValue(enterQuery, tradeId);
 
-    // on cherche toutes les sorties sur le trade
-    const closureQuery = `Select COALESCE(SUM((closure.price * closure.quantity)+closure.fees+closure.tax),0) as closureValue, 
-      COALESCE (SUM(quantity),0) as closureQuantity
-      FROM closure
-      WHERE closure.trade_id = ? `;
-    const [closure] = await Query.doByValue(closureQuery, tradeId);
+//     // on cherche toutes les sorties sur le trade
+//     const closureQuery = `Select COALESCE(SUM((closure.price * closure.quantity)+closure.fees+closure.tax),0) as closureValue, 
+//       COALESCE (SUM(quantity),0) as closureQuantity
+//       FROM closure
+//       WHERE closure.trade_id = ? `;
+//     const [closure] = await Query.doByValue(closureQuery, tradeId);
 
-    // on cherche les informations du trade
-    const tradeQuery = `SELECT DISTINCT stock.title, stock.isin AS isin, stock.id AS stock_id,
-            stock.place AS place, stock.ticker AS ticker, 
-            activeStock.lastQuote, activeStock.currencySymbol as symbol,
-            trade.id as tradeId, trade.firstEnter, currentTarget as target, currentStop as stop, trade.comment, trade.position,
-            portfolio.title  AS portfolio, portfolio.id AS portfolio_id
-            FROM enter
-            JOIN trade ON enter.trade_id = trade.id 
-            JOIN stock ON trade.stock_id = stock.id 
-            JOIN activeStock ON activeStock.stock_id = stock.id
-            JOIN portfolio ON trade.portfolio_id = portfolio.id         
-            WHERE trade.id = ?`;
+//     // on cherche les informations du trade
+//     const tradeQuery = `SELECT DISTINCT stock.title, stock.isin AS isin, stock.id AS stock_id,
+//             stock.place AS place, stock.ticker AS ticker, 
+//             activeStock.lastQuote, activeStock.currencySymbol as symbol,
+//             trade.id as tradeId, trade.firstEnter, currentTarget as target, currentStop as stop, trade.comment, trade.position,
+//             portfolio.title  AS portfolio, portfolio.id AS portfolio_id
+//             FROM enter
+//             JOIN trade ON enter.trade_id = trade.id 
+//             JOIN stock ON trade.stock_id = stock.id 
+//             JOIN activeStock ON activeStock.stock_id = stock.id
+//             JOIN portfolio ON trade.portfolio_id = portfolio.id         
+//             WHERE trade.id = ?`;
 
-    const [trade] = await Query.doByValue(tradeQuery, tradeId);
+//     const [trade] = await Query.doByValue(tradeQuery, tradeId);
 
-    // Calculs pour affichage 
-    const calculs = {
-      pru: (enter.enterValue / enter.enterQuantity).toFixed(3),
-      remains: +enter.enterQuantity - closure.closureQuantity,
-      exposition: (
-        (+enter.enterQuantity - closure.closureQuantity) *
-        trade.lastQuote
-      ).toFixed(3),
-      //opToDo: (trade.position = "long" ? "sell" : "buy"),
-    };
+//     // Calculs pour affichage 
+//     const calculs = {
+//       pru: (enter.enterValue / enter.enterQuantity).toFixed(3),
+//       remains: +enter.enterQuantity - closure.closureQuantity,
+//       exposition: (
+//         (+enter.enterQuantity - closure.closureQuantity) *
+//         trade.lastQuote
+//       ).toFixed(3),
+//       //opToDo: (trade.position = "long" ? "sell" : "buy"),
+//     };
 
-    // aggrégation des données et calculs 
-    const result = { ...enter, ...closure, ...calculs, ...trade };
+//     // aggrégation des données et calculs 
+//     const result = { ...enter, ...closure, ...calculs, ...trade };
 
-    res.status(200).json(result);
-  } catch (error) {
-    res.json({ msg: error });
-  }
-};
+//     res.status(200).json(result);
+//   } catch (error) {
+//     res.json({ msg: error });
+//   }
+// };
 
 /**
  * Traite la création d'une sortie / closure

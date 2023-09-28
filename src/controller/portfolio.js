@@ -611,18 +611,18 @@ async function portfolioDashboard(portfolioId) {
  * @param {Request} req - La requête HTTP contenant les paramètres.
  * @param {Response} res - La réponse HTTP à renvoyer.
  */
-export const getOnePortfolioDashboard = async (req, res) => {
-  try {
-    // Appel à la fonction portfolioDashboard pour récupérer le tableau de bord du portefeuille spécifié par son identifiant
-    const dashboard = await portfolioDashboard(+req.params.idPortfolio);
+// export const getOnePortfolioDashboard = async (req, res) => {
+//   try {
+//     // Appel à la fonction portfolioDashboard pour récupérer le tableau de bord du portefeuille spécifié par son identifiant
+//     const dashboard = await portfolioDashboard(+req.params.idPortfolio);
 
-    // Réponse avec le tableau de bord en tant que JSON
-    res.status(200).json(dashboard);
-  } catch (error) {
-    // En cas d'erreur, renvoyer un message JSON contenant l'erreur
-    res.json({ msg: error });
-  }
-};
+//     // Réponse avec le tableau de bord en tant que JSON
+//     res.status(200).json(dashboard);
+//   } catch (error) {
+//     // En cas d'erreur, renvoyer un message JSON contenant l'erreur
+//     res.json({ msg: error });
+//   }
+// };
 
 /**
  * Récupère le tableau de bord global d'un utilisateur via la route portfolios/dashBoard/user/:userId
@@ -667,6 +667,7 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
       totalPerf: 0,
       totalPerfPc: 0,
       activeK: 0,
+      portfoliosArray: [],
     };
 
     // On récupère la liste des portefeuilles de l'utilisateur
@@ -675,6 +676,8 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
     // Pour chaque portefeuille on va chercher le tableau de bord et alimenter le tableau de bord global
     for await (const portfolio of portfolios) {
       const dash = await portfolioDashboard(portfolio.id);
+
+   
 
       // À partir de la devise de l'application et de celle du portefeuille, on cherche le taux de change
       const xRate = appForex.find(
@@ -724,8 +727,7 @@ export const getGlobalDashboardOfOneUser = async (req, res) => {
         portfolioDash.activeK +
         (1 / xRate) * dash.activeK
       ).toFixed(2);
-      //console.log(portfolioDash);
-
+      portfolioDash.portfoliosArray.push(dash)
       
     }
 
