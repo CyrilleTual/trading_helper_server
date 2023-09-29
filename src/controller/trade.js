@@ -751,3 +751,38 @@ export const checkIfActiveTrade = async (req, res) => {
     res.json({ msg: error });
   }
 };
+
+
+export const movements = async (req, res ) => {
+
+  const { tradeId } = req.params;
+ 
+  try {
+    const queryEnter = `
+        SELECT *
+        FROM enter 
+        WHERE trade_id = ?
+      `;
+
+    const queryClosure = `
+        SELECT *
+        FROM closure 
+        WHERE trade_id = ? 
+      `;
+    const queryAdjustment = `
+        SELECT *
+        FROM adjustment
+        WHERE trade_id = ? 
+      `;
+
+    // Exécution des requêtes pour obtenir les quantités d'entrée et de fermeture
+    const enter = await Query.doByValue(queryEnter, tradeId);
+    const closure = await Query.doByValue(queryClosure, tradeId);
+    const adjustment = await Query.doByValue(queryAdjustment, tradeId);
+
+    /// Retourne un objets avec les array des entrees, sorties et mouvements sur un trade
+    res.status(200).json({ enter:enter, closure:closure, adjustment:adjustment});
+  } catch (error) {
+     res.json({ msg: error });
+  }
+}
