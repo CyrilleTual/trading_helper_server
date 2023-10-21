@@ -1,7 +1,7 @@
-FROM --platform=linux/amd64  node:18-alpine
-# FROM --platform=linux/amd64  node:18-alpine         -> for coyeb or other linux system
-# FROM node:lts-alpine                                -> for usage on MAC OS 
-
+#-> for Koyeb or other linux system
+FROM --platform=linux/amd64  node:18-alpine   
+#-> for MacOs       
+# FROM node:lts-alpine                                
 
 WORKDIR /app
 

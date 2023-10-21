@@ -122,10 +122,6 @@ async function getDetailsOfOpensTrades(opensTradesList) {
  */
 async function actualisation(item) {
 
-
- 
-
-
   // Requête pour obtenir les détails du trade
   const query = `
     SELECT DISTINCT stock.title, stock.id AS stockId, stock.isin AS isin, stock.place AS place, stock.ticker AS ticker, 
@@ -182,34 +178,24 @@ async function actualisation(item) {
 
   // détermination du statut du trade en cours : OnGoing, OnStop, OnTarget 
   let status = "OnGoing";
-  if (trade.position === "long" && trade.lastQuote > trade.currentTarget) {
+  if (trade.position === "long" && +trade.lastQuote > +trade.currentTarget) {
     status = "OnTarget";
-  } else if (trade.position === "long" && trade.lastQuote < trade.currentStop) {
+  } else if (trade.position === "long" && +trade.lastQuote < +trade.currentStop) {
     status = "OnStop";
   } else if (
     trade.position === "short" &&
-    trade.lastQuote < trade.currentTarget
+    +trade.lastQuote < +trade.currentTarget
   ) {
     status = "OnTarget";
   } else if (
     trade.position === "short" &&
-    trade.lastQuote > trade.currentStop
+    +trade.lastQuote > +trade.currentStop
   ) {
     status = "OnStop";
   }
 
-
-
-
-
-
-
   // const pruTest = ((+totalCost+(+enterTaxs)) / +quantityBought)
-
   // console.log ("cout",+totalCost, "taxes ",+enterTaxs, "quantite", +quantityBought, "pruTest", pruTest,"pru",pru, "neutral",neutral)
-
-
-
  //console.log(trade.position, pru, pruTest, neutral);
 
   // Crée un objet avec les détails actualisés du trade
