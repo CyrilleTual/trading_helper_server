@@ -602,7 +602,7 @@ export async function newStrategieInputCheck(inputs, res) {
   }
 
   //// verification de l'input "title"  ////////////////////
-  const cleanTitle = comment.trim();
+  const cleanTitle = title.trim();
   if (cleanTitle.length <3 || cleanTitle.length > 255) {
     inputsErrors.push("désignation non valide");
   }
