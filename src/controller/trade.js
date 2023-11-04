@@ -772,3 +772,49 @@ export const movements = async (req, res ) => {
      res.json({ msg: error });
   }
 }
+
+export const deleteTrade = async (req, res) => {
+  const { tradeId } = req.params;
+  try {
+    const queryEnter = `
+        DELETE
+        FROM enter 
+        WHERE trade_id = ?
+      `;
+
+    const queryClosure = `
+        DELETE
+        FROM closure 
+        WHERE trade_id = ? 
+      `;
+    const queryAdjustment = `
+        DELETE
+        FROM adjustment
+        WHERE trade_id = ? 
+      `;
+     const queryTrade = `
+        DELETE
+        FROM trade
+        WHERE id = ? 
+      `;  
+
+    // Exécution des requêtes pour obtenir les quantités d'entrée et de fermeture
+    const enter = await Query.doByValue(queryEnter, tradeId);
+    const closure = await Query.doByValue(queryClosure, tradeId);
+    const adjustment = await Query.doByValue(queryAdjustment, tradeId);
+    const trade = await Query.doByValue(queryTrade, tradeId);
+
+    // Log the results of delete operations
+    console.log("Deleted enter rows:", enter.serverStatus);
+    console.log("Deleted closure rows:", closure);
+    console.log("Deleted adjustment rows:", adjustment);
+    
+
+    /// Retourne un objets avec les array des entrees, sorties et mouvements sur un trade
+    res.status(200).json({ msg: " deleted completed" });
+  } catch (error) {
+    // Log the error and return an error response
+    console.error("Error deleting data:", error);
+    res.status(500).json({ msg: "Deletion failed", error: error.message });
+  }
+};

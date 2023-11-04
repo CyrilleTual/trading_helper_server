@@ -19,4 +19,5 @@ router.post("/new", newPortfolio); // creation d'un nouveau portfolio
 router.post("/deposit", deposit); // depôt ou retrait du un portefeuille
 router.put("/:idPortfolio/idle", idlePortfolio); // desactive un portfolio
 
+
 export default router;
