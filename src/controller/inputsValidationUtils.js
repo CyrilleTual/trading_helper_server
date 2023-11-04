@@ -582,3 +582,43 @@ export async function adjustmentInputCheck(inputs, res) {
 
   return { inputsErrors, verifiedValues }; // Renvoi des erreurs et des valeurs vérifiées
 }
+
+
+/**
+ * Vérifie les données d'entrée pour création strategie
+ * @param {*} inputs - Les données d'entrée à vérifier .
+ * @param {*} Un objet contenant les erreurs éventuelles et les valeurs vérifiées.
+ * @returns 
+ */
+export async function newStrategieInputCheck(inputs, res) {
+  const inputsErrors = []; // Tableau pour stocker les erreurs d'entrée
+  let verifiedValues = {}; // Objet pour stocker les valeurs vérifiées
+  const userId = res.locals.datas.userId; //recupère l'id du user (recup d'aprés le token reçu et validé)
+  const { user_id, title, comment } = inputs;
+
+  // verification de la validité de l'id user
+  if (userId !== user_id) {
+    inputsErrors.push("Requête invalide");
+  }
+
+  //// verification de l'input "title"  ////////////////////
+  const cleanTitle = comment.trim();
+  if (cleanTitle.length <3 || cleanTitle.length > 255) {
+    inputsErrors.push("désignation non valide");
+  }
+
+  //// verification de l'input "comment ////////////////////
+  const cleanComment = comment.trim();
+  if (cleanComment.length > 255) {
+    inputsErrors.push("commentaire non valide");
+  }
+
+  // Stockage des valeurs vérifiées dans l'objet
+  verifiedValues = {
+    user_id: user_id,
+    title: cleanTitle,
+    comment: cleanComment,
+  };
+
+  return { inputsErrors, verifiedValues }; // Renvoi des erreurs et des valeurs vérifiées
+}
