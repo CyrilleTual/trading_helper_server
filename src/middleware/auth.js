@@ -47,7 +47,6 @@ export const auth = async (req, res, next) => {
     // Récupère le token depuis l'en-tête de la requête
     const TOKEN = req.headers["x-access-token"];
     
-
     // Vérifie si le token est présent et non nul
     if (TOKEN === undefined || TOKEN === "null") {
       res.status(404).json({ msg: "Token not found" });

@@ -1,5 +1,6 @@
 import Query from "../model/query.js";
 import { newEntryInputCheck, reEnterInputCheck, exitInputCheck, adjustmentInputCheck }  from "./inputsValidationUtils.js"
+import { lastTadeID, setNewLastUid } from "./prefsUser.js";
 
 /**
  * Trie les trades en fonction de leur activité .
@@ -126,7 +127,7 @@ async function actualisation(item) {
   const query = `
     SELECT DISTINCT stock.title, stock.id AS stockId, stock.isin AS isin, stock.place AS place, stock.ticker AS ticker, 
     activeStock.lastQuote, activeStock.currencySymbol As symbol, activeStock.beforeQuote As beforeQuote, activeStock.updDate updDate,
-    trade.firstEnter, currentTarget, currentStop, trade.comment, trade.position as position, trade.id AS tradeId,
+    trade.firstEnter, currentTarget, currentStop, trade.uidForUser, trade.comment, trade.position as position, trade.id AS tradeId,
     portfolio.id AS portfolioId, portfolio.title AS portfolio, trade.strategy_id AS strategyId, strategy.title AS strategy
     FROM enter
     JOIN trade ON enter.trade_id = trade.id 
@@ -231,6 +232,7 @@ async function actualisation(item) {
     tradeId: trade.tradeId,
     neutral: +neutral,
     status: status,
+    uidForUser: trade.uidForUser,
 
   };
 
@@ -301,90 +303,106 @@ export const newEntry = async (req, res) => {
 
   try {
 
-     const { inputsErrors, verifiedValues } = await newEntryInputCheck(req.body, res);
+    // recuperation de l'id de l'user via le token
+    const token = req.headers["x-access-token"];
+    const { id : userId} = JSON.parse(atob(token.split(".")[1]));
+
+    // recupération du dernier uid de trade pour l'user et incrémentation 
+    const uidForUser =( await (lastTadeID(userId)))+1; 
+
+    //  modification du dernier uid dans les prefsUser
+    setNewLastUid(userId, uidForUser); 
+
+    const { inputsErrors, verifiedValues } = await newEntryInputCheck(
+      req.body,
+      res
+    );
 
 
-    if (inputsErrors.length > 0) {  // il y a des erreurs 
+
+
+
+    if (inputsErrors.length > 0) {
+      // il y a des erreurs
       res.status(403).json({
-      msg: "Requête incorrecte, création rejetée",
+        msg: "Requête incorrecte, création rejetée",
       });
       return;
-    }else{
-          const {
-      stock_id,
-      price,
-      target,
-      stop,
-      quantity,
-      fees,
-      tax,
-      comment,
-      strategy_id,
-      portfolio_id,
-      currency_abbr,
-      lastQuote,
-      beforeQuote,
-      position,
-      currency_symbol
-    } = verifiedValues;
+    } else {
+      const {
+        stock_id,
+        price,
+        target,
+        stop,
+        quantity,
+        fees,
+        tax,
+        comment,
+        strategy_id,
+        portfolio_id,
+        currency_abbr,
+        lastQuote,
+        beforeQuote,
+        position,
+        currency_symbol,
+      } = verifiedValues;
 
-    
-    // Crée la date de l'entrée initiale
-    let dateToSet = new Date();
+      // Crée la date de l'entrée initiale
+      let dateToSet = new Date();
 
-    // Crée le nouveau trade et récupère son ID
-    const query = `INSERT INTO trade ( stock_id, position, currentTarget, currentStop, comment, firstEnter, strategy_id ,  portfolio_id ,  currency_abbr ) 
-        VALUES (?,?,?,?,?,?,?,?,?)`;
-    const [result] = await Query.doByValues(query, {
-      stock_id,
-      position,
-      target,
-      stop,
-      comment,
-      dateToSet,
-      strategy_id,
-      portfolio_id,
-      currency_abbr,
-    });
-    const idTrade = result.insertId;
 
-    // Crée l'entrée initiale liée au trade (comments identiques, objectifs et target idem)
-    const querryEnter = `INSERT INTO enter (date, price, target, stop, quantity, fees, tax, comment, trade_id)
+      // Crée le nouveau trade et récupère son ID
+      const query = `INSERT INTO trade ( uidForUser, stock_id, position, currentTarget, currentStop, comment, firstEnter, strategy_id ,  portfolio_id ,  currency_abbr ) 
+        VALUES (?,?,?,?,?,?,?,?,?,?)`;
+      const [result] = await Query.doByValues(query, {
+        uidForUser,
+        stock_id,
+        position,
+        target,
+        stop,
+        comment,
+        dateToSet,
+        strategy_id,
+        portfolio_id,
+        currency_abbr,
+      });
+      const idTrade = result.insertId;
+
+      // Crée l'entrée initiale liée au trade (comments identiques, objectifs et target idem)
+      const querryEnter = `INSERT INTO enter (date, price, target, stop, quantity, fees, tax, comment, trade_id)
         VALUES ( ?,?,?,?,?,?,?,?,? )`;
-    await Query.doByValues(querryEnter, {
-      dateToSet,
-      price,
-      target,
-      stop,
-      quantity,
-      fees,
-      tax,
-      comment,
-      idTrade,
-    });
+      await Query.doByValues(querryEnter, {
+        dateToSet,
+        price,
+        target,
+        stop,
+        quantity,
+        fees,
+        tax,
+        comment,
+        idTrade,
+      });
 
-    // verifie si le stock est déja dans les trades actifs
-    const queryCheck = `
+      // verifie si le stock est déja dans les trades actifs
+      const queryCheck = `
       SELECT activeStock.stock_id  FROM activeStock 
       WHERE stock_id = ?
     `;
-    const existShares = await Query.doByValue(queryCheck, stock_id);
+      const existShares = await Query.doByValue(queryCheck, stock_id);
 
-    if (existShares.length === 0) {
-      /// Si pas d'enregistrement trouvé, crée un nouveau dans activeStock
-      const query = `INSERT INTO activeStock ( stock_id, lastQuote, beforeQuote, currencySymbol) 
+      if (existShares.length === 0) {
+        /// Si pas d'enregistrement trouvé, crée un nouveau dans activeStock
+        const query = `INSERT INTO activeStock ( stock_id, lastQuote, beforeQuote, currencySymbol) 
         VALUES (?,?,?,?)`;
-      await Query.doByValues(query, {
-        stock_id,
-        lastQuote,
-        beforeQuote,
-        currency_symbol,
-      });
+        await Query.doByValues(query, {
+          stock_id,
+          lastQuote,
+          beforeQuote,
+          currency_symbol,
+        });
+      }
+      res.status(200).json("trade entré correctement");
     }
-    res.status(200).json("trade entré correctement");
-    }  
-
-
   } catch (error) {
     res.json({ msg: error });
   }
@@ -738,7 +756,11 @@ export const checkIfActiveTrade = async (req, res) => {
   }
 };
 
-
+/**
+ * retourne un objets avec les array des entrees, sorties et mouvements sur un trade
+ * @param {*} req  doit contenir tradeId 
+ * @param {*} res 
+ */
 export const movements = async (req, res ) => {
 
   const { tradeId } = req.params;
@@ -773,6 +795,13 @@ export const movements = async (req, res ) => {
   }
 }
 
+
+
+/**
+ * Delete d'un trade et des entrées, sorties et mouvements associés 
+ * @param {*} req doit contenir tradeId 
+ * @param {*} res 
+ */
 export const deleteTrade = async (req, res) => {
   const { tradeId } = req.params;
   try {
