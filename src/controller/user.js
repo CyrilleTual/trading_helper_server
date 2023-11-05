@@ -42,10 +42,18 @@ const signup = async (req, res) => {
         INSERT INTO user (email, pwd, alias, role_id) 
         VALUES (?,?,?,3)
       `;
-      const result = await Query.doByValues(query, { email, hashedPWD, alias });
+      const [{insertId}] = await Query.doByValues(query, { email, hashedPWD, alias });
+
+      // avec l'id de l'utilisateur on créé ses préférences 
+      const prefsQuery = `
+        INSERT INTO prefsUser (user_id) 
+        VALUES (?)
+      `;
+      await Query.doByValues(prefsQuery, { insertId });
+ 
       res
         .status(201)
-        .json({ msg: "Utilisateur créé avec succès !", data: result });
+        .json({ msg: "Utilisateur créé avec succès !", id: insertId });
     } catch (error) {
       res.status(500).json({
         msg: "Erreur lors de la création de l'utilisateur",

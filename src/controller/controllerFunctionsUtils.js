@@ -28,7 +28,6 @@ export async function checkIfUserExistByEmail(email) {
   }
 }
 
-
 /**
  * Récupère la liste des portefeuilles et leur id pour un utilisateur donné (userId).
  * 
@@ -127,10 +126,6 @@ export async function getCurrencies() {
      }
 }
 
-
-
-
-
 /**
  * Récupère la liste des id des stocks
  * 
@@ -147,7 +142,6 @@ export async function stocksIds () {
         console.log (error)
      }
 }
-
 
 /**
  * Vérifie si un trade est valide en fonction des paramètres fournis.
