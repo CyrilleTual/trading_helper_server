@@ -2,25 +2,6 @@ import Query from "../model/query.js";
 import {  scrapeLastInfos } from "../utils/scraper.js";
 import { SortTradesByActivity } from "./trade.js";
 
-// export  const  testview = (req, res) => {
-//     res.send(" ho ok my friend that's it");
-// }
-
-/**
- * Selection de tous les stocks
- */
-// export const testview = async (req, res) => {
-//   try {
-//     const query = `
-//         SELECT * FROM stock
-//     `;
-//     const result = await Query.find(query);
-
-//     res.status(200).json(result);
-//   } catch (error) {
-//     res.json({ msg: error });
-//   }
-// };
 
 /**
  * selection d'un stock par son isin et sa place de quotation
@@ -41,8 +22,6 @@ export const displayOneStock = async (req, res) => {
     result[0].last = last;
     result[0].before = before;
 
- 
-
     res.status(200).json({ result });
   } catch (error) {
     res.json({ msg: error });
@@ -50,58 +29,6 @@ export const displayOneStock = async (req, res) => {
 };
 
 
-async function actualisation (item)  {
-
-
-   const query = `
-        SELECT DISTINCT stock.title, stock.id  AS stockId,  stock.isin AS isin, stock.place AS place, stock.ticker AS ticker, 
-        activeStock.lastQuote,
-        trade.firstEnter, currentTarget, currentStop, trade.comment,
-        portfolio.id  AS portfolioId 
-        FROM enter
-        JOIN trade ON enter.trade_id = trade.id 
-        JOIN stock ON trade.stock_id = stock.id 
-        JOIN activeStock ON activeStock.stock_id = stock.id
-        JOIN portfolio ON trade.portfolio_id = portfolio.id 
-        JOIN user ON portfolio.user_id  = user.id 
-        WHERE trade.id = ?
-      `;
-      const [trade] = await Query.doByValue(query, item.idTrade); // array of object
-
-      let actulizedTrade = {
-        title: trade.title,
-        isin: trade.isin,
-        place: trade.place,
-        ticker: trade.ticker,
-        lastQuote: trade.lastQuote,
-        quantity: item.remains,
-        pru: 0,
-        perf: 0,
-        firstEnter: trade.firstEnter,
-        currentTarget: trade.currentTarget,
-        currentStop: trade.currentStop,
-        comment: trade.comment,
-      };
-
-      //détermination du PRU
-      const queryPru = `
-        SELECT SUM(price)+ SUM(fees) + SUM(tax) /  SUM(quantity) AS pru
-        FROM enter
-        WHERE trade_id = ?
-      `;
-      const [{ pru }] = await Query.doByValue(queryPru, [item.idTrade]);
-
-      // on complète et formate les informations à renvoyer
-      actulizedTrade.firstEnter = new Date(trade.firstEnter).toLocaleDateString(
-        "fr-FR"
-      );
-      actulizedTrade.pru = Number.parseFloat(pru).toFixed(3);
-      actulizedTrade.perf = `${Number.parseFloat(
-        (trade.lastQuote - pru) / pru
-      ).toFixed(2)} %`;
-
-      return (actulizedTrade)
-}
 
 
 

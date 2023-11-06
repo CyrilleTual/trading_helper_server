@@ -166,6 +166,39 @@ export async function verifyTrade (tradeId, stockId, userId ) {
 }
 
 
+//**
+//* Verifie si trade residuel existe sur un stock
+// si non le sort du tableau de suivi
+//* @param {*} stock_id 
+// */
 
+export const checkAndDeleteIfResidual = async (stock_id) => {
+
+  // Rechercher le nombre de titre residuel
+  const query2 = `
+    SELECT SUM(quantity) AS nbEnter 
+    FROM enter
+    JOIN trade ON enter.trade_id = trade.id
+    WHERE trade.stock_id = ?
+  `;
+  const [stocksEntered] = await Query.doByValue(query2, stock_id);
+
+  const query3 = `
+    SELECT COALESCE(SUM(quantity),0) as nbExit
+    FROM closure
+    JOIN trade ON closure.trade_id = trade.id 
+    WHERE trade.stock_id = ? 
+  `;
+  const [stocksExited] = await Query.doByValue(query3, stock_id);
+
+  const stocksRemaining = stocksEntered.nbEnter - stocksExited.nbExit;
+
+  // Si il n'y a plus de position active on efface la ligne du suivi !!
+  if (stocksRemaining < 1) {
+    const query4 = `DELETE FROM activeStock WHERE stock_id = ?`;
+    await Query.doByValue(query4, stock_id);
+  }
+
+}
 
 

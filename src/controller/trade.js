@@ -1,6 +1,8 @@
 import Query from "../model/query.js";
+import { checkAndDeleteIfResidual } from "./controllerFunctionsUtils.js";
 import { newEntryInputCheck, reEnterInputCheck, exitInputCheck, adjustmentInputCheck }  from "./inputsValidationUtils.js"
 import { lastTadeID, setNewLastUid } from "./prefsUser.js";
+ 
 
 /**
  * Trie les trades en fonction de leur activité .
@@ -309,7 +311,6 @@ export const newEntry = async (req, res) => {
 
     // recupération du dernier uid de trade pour l'user et incrémentation 
     const uidForUser =( await (lastTadeID(userId)))+1; 
-
     //  modification du dernier uid dans les prefsUser
     setNewLastUid(userId, uidForUser); 
 
@@ -317,10 +318,6 @@ export const newEntry = async (req, res) => {
       req.body,
       res
     );
-
-
-
-
 
     if (inputsErrors.length > 0) {
       // il y a des erreurs
@@ -345,10 +342,11 @@ export const newEntry = async (req, res) => {
         beforeQuote,
         position,
         currency_symbol,
+        date,
       } = verifiedValues;
 
       // Crée la date de l'entrée initiale
-      let dateToSet = new Date();
+      let dateToSet = new Date(date);
 
 
       // Crée le nouveau trade et récupère son ID
@@ -549,6 +547,10 @@ export const exitProcess = async (req, res) => {
     }
   }
 };
+
+
+
+
 
 
 /**
@@ -805,41 +807,53 @@ export const movements = async (req, res ) => {
 export const deleteTrade = async (req, res) => {
   const { tradeId } = req.params;
   try {
+
+    // Requête SQL pour obtenir l'id du stock
+    const queryIdStock = `
+        SELECT stock_id
+        FROM trade
+        WHERE id = ?
+      `;
+
+    // suppression des entrées
     const queryEnter = `
         DELETE
         FROM enter 
         WHERE trade_id = ?
       `;
-
+    // suppression des sorties
     const queryClosure = `
         DELETE
         FROM closure 
         WHERE trade_id = ? 
       `;
+
+    // suppression des ajustements
     const queryAdjustment = `
         DELETE
         FROM adjustment
         WHERE trade_id = ? 
       `;
-     const queryTrade = `
+
+    // suppression du trade
+    const queryTrade = `
         DELETE
         FROM trade
         WHERE id = ? 
-      `;  
+      `;
 
-    // Exécution des requêtes pour obtenir les quantités d'entrée et de fermeture
-    const enter = await Query.doByValue(queryEnter, tradeId);
-    const closure = await Query.doByValue(queryClosure, tradeId);
-    const adjustment = await Query.doByValue(queryAdjustment, tradeId);
-    const trade = await Query.doByValue(queryTrade, tradeId);
+    // Exécution des requêtes
+    const [{ stock_id }] = await Query.doByValue(queryIdStock, tradeId);
 
-    // Log the results of delete operations
-    console.log("Deleted enter rows:", enter.serverStatus);
-    console.log("Deleted closure rows:", closure);
-    console.log("Deleted adjustment rows:", adjustment);
-    
+    await Query.doByValue(queryEnter, tradeId);
+    await Query.doByValue(queryClosure, tradeId);
+    await Query.doByValue(queryAdjustment, tradeId);       
+    await Query.doByValue(queryTrade, tradeId);
 
-    /// Retourne un objets avec les array des entrees, sorties et mouvements sur un trade
+    // appel de la function qui verifie l'absence de trade résiduel sur un actif
+    // et qui supprime cet actif du tableau de suivi si besoin
+    checkAndDeleteIfResidual(stock_id);
+
     res.status(200).json({ msg: " deleted completed" });
   } catch (error) {
     // Log the error and return an error response

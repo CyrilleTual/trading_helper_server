@@ -142,6 +142,7 @@ export async function newEntryInputCheck(inputs, res) {
     lastQuote,
     beforeQuote,
     position,
+    date,
   } = inputs;
 
   // Vérification que les champs numériques sont bien numériques et non négatifs
@@ -223,6 +224,13 @@ export async function newEntryInputCheck(inputs, res) {
     inputsErrors.push("Support invalide");
   }
 
+  // verification de la date 
+    if (!(new Date(date) instanceof Date)) {
+      inputsErrors.push("Date invalide");
+    }
+
+
+
   // Stockage des valeurs vérifiées dans l'objet
   verifiedValues = {
     stock_id: +stock_id,
@@ -240,6 +248,7 @@ export async function newEntryInputCheck(inputs, res) {
     beforeQuote: +beforeQuote,
     position: position,
     currency_symbol: symbol,
+    date: date,
   };
 
   return { inputsErrors, verifiedValues }; // Renvoi des erreurs et des valeurs vérifiées
